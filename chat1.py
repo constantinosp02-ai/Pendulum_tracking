@@ -75,8 +75,8 @@ DATA_PATH = 'cam{}.mat'
 # Cropping to a region around the mass avoids bright distractors elsewhere
 # in the frame (ceiling lights, reflections, etc.)
 ROIS = {
-    1: (250, 480, 280, 500),
-    2: (160, 430, 180, 480),
+    1: (150, 430, 280, 500),
+    2: (80, 410, 180, 480),
     3: (130, 350, 200, 520),
 }
 
