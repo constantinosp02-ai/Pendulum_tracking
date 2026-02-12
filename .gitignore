@@ -1,0 +1,6 @@
+# Large data files (exceed GitHub 100MB limit)
+*.mat
+
+# Python cache
+__pycache__/
+*.pyc
