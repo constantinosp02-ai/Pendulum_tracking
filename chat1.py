@@ -54,7 +54,7 @@ Output:  tracking_results.npz, diagnostic and trajectory figures
 # =========================================================================
 import numpy as np                        # numerical array operations
 import scipy.io as sio                    # reading MATLAB .mat files
-from scipy.ndimage import label           # connected component labelling
+from scipy.ndimage import label, rotate   # connected component labelling + rotation
 import matplotlib.pyplot as plt           # plotting and visualisation
 import os                                 # file path handling
 
@@ -71,13 +71,42 @@ VID_KEYS = {
 # File path template
 DATA_PATH = 'cam{}.mat'
 
+def rotate_cam3_video(vid):
+    """
+    Rotate Camera 3 video: 90° clockwise then an additional 24° clockwise.
+
+    The raw Camera 3 frames are rotated in the .mat file.  This function
+    first applies a 90° clockwise rotation (exact, no interpolation) and
+    then an additional 24° clockwise rotation using scipy.ndimage.rotate
+    with reshape=False to keep the frame dimensions constant.
+
+    Parameters
+    ----------
+    vid : ndarray, shape (H, W, 3, N)
+        Raw video array.
+
+    Returns
+    -------
+    rotated : ndarray, same dtype as input
+        Rotated video array.
+    """
+    # Step 1: exact 90° CW rotation
+    vid = np.rot90(vid, k=-1, axes=(0, 1))      # (480,640,3,N) → (640,480,3,N)
+    # Step 2: additional 24° CW  (scipy uses CCW positive, so angle = -24)
+    nframes = vid.shape[3]
+    for i in range(nframes):
+        vid[:, :, :, i] = rotate(vid[:, :, :, i], angle=-24,
+                                  reshape=False, order=1)
+    return vid
+
+
 # Region of Interest for each camera: (y_min, y_max, x_min, x_max)
 # Cropping to a region around the mass avoids bright distractors elsewhere
 # in the frame (ceiling lights, reflections, etc.)
 ROIS = {
     1: (150, 430, 280, 500),
     2: (80, 410, 180, 480),
-    3: (130, 350, 200, 520),
+    3: (200, 520, 129, 349),   # after 90° CW rotation of Camera 3
 }
 
 # Channel mode for each camera:
@@ -243,6 +272,53 @@ def rgb_to_pink_channel(rgb_image):
     pink = np.clip(pink, 0, None)
 
     return pink
+
+
+def rgb_to_dark_yellowgreen_channel(rgb_image):
+    """
+    Compute a "dark yellow-green channel" from RGB pixel values.
+
+    This channel isolates dark yellow-green regions by combining a
+    colour signal (G − B) with a darkness weighting factor.  The idea
+    is that the dark yellow-green stripe on the paint can has high Green
+    relative to Blue, but low overall brightness compared to the white
+    wall or bright yellow areas:
+
+        colour  = max(G − B, 0)
+        darkness = clip(150 − brightness, 0, 150) / 150
+        output  = colour × darkness
+
+    Colour responses:
+        Dark yellow-green stripe: high G−B, low brightness → large value
+        Bright wall / paper:      moderate G−B, high brightness → suppressed
+        Black can body:           low G−B, low brightness → near zero
+        Background:               variable, but mostly bright → suppressed
+
+    Like the other custom channels, this is an arithmetic combination of
+    the (R, G, B) pixel values (Lecture 4, Sec. 1.1.1), extended with a
+    brightness-based weighting.
+
+    Parameters
+    ----------
+    rgb_image : ndarray, shape (H, W, 3)
+        Input image in RGB format (values 0–255).
+
+    Returns
+    -------
+    dark_yg : ndarray, shape (H, W)
+        Dark yellow-green channel as float64.  High values = likely the
+        dark yellow-green stripe.
+    """
+    R = rgb_image[:, :, 0].astype(np.float64)
+    G = rgb_image[:, :, 1].astype(np.float64)
+    B = rgb_image[:, :, 2].astype(np.float64)
+
+    brightness = (R + G + B) / 3.0
+    colour_signal = np.clip(G - B, 0, None)
+    darkness = np.clip(150.0 - brightness, 0, 150.0) / 150.0
+    dark_yg = colour_signal * darkness
+
+    return dark_yg
 
 
 # =========================================================================
@@ -516,6 +592,13 @@ def track_camera(cam_id):
     print(f'  Loading {filepath}...')
     data = sio.loadmat(filepath)
     vid = data[VID_KEYS[cam_id]]            # shape: (480, 640, 3, nframes)
+
+    # Camera 3 frames are rotated in the raw data.
+    # Rotate 90° + 24° clockwise to get the correct orientation.
+    if cam_id == 3:
+        vid = rotate_cam3_video(vid)
+        print(f'  Rotated Camera 3 frames 90°+24° clockwise')
+
     nframes = vid.shape[3]
     print(f'  Video shape: {vid.shape}  →  {nframes} frames')
 
@@ -564,6 +647,8 @@ def track_camera(cam_id):
             gray = rgb_to_yellow_channel(roi_rgb)
         elif mode == 'pink':
             gray = rgb_to_pink_channel(roi_rgb)
+        elif mode == 'dark_yellowgreen':
+            gray = rgb_to_dark_yellowgreen_channel(roi_rgb)
         else:
             gray = rgb_to_grayscale(roi_rgb)
 
@@ -653,6 +738,8 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
     # load data
     data = sio.loadmat(DATA_PATH.format(cam_id))
     vid = data[VID_KEYS[cam_id]]
+    if cam_id == 3:
+        vid = rotate_cam3_video(vid)
     rgb_frame = vid[:, :, :, frame_idx]
 
     # unpack parameters
@@ -899,6 +986,8 @@ if __name__ == '__main__':
             continue
         data = sio.loadmat(DATA_PATH.format(cam))
         vid = data[VID_KEYS[cam]]
+        if cam == 3:
+            vid = rotate_cam3_video(vid)
         y1, y2, x1, x2 = ROIS[cam]
         for j, fidx in enumerate(sample_frames):
             if fidx < vid.shape[3]:
@@ -927,8 +1016,8 @@ if __name__ == '__main__':
     print('Generating Figure 3: Displacement time series...')
     cam_labels = {
         1: 'Camera 1 (Side View)',
-        2: 'Camera 2 (Front View)',
-        3: 'Camera 3 (Overhead View)',
+        2: 'Camera 2 (Overhead View)',
+        3: 'Camera 3 (Front View)',
     }
     fig, axes = plt.subplots(3, 2, figsize=(16, 11))
 

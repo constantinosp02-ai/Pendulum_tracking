@@ -5,14 +5,16 @@ Show Camera 1 frame ranges for debugging.
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
-from chat1 import track_camera, ROIS, VID_KEYS, CHANNEL_MODE
+from chat1 import track_camera, ROIS, VID_KEYS, CHANNEL_MODE, rotate_cam3_video
 
 # -- Settings --------------------------------------------------------------
-CAM = 1
-FRAME_RANGES = [(75, 100), (110, 150)]
+CAM = 2
+FRAME_RANGES = [(75, 100)]
 
 # -- Load video & run tracker ---------------------------------------------
 vid = sio.loadmat(f'cam{CAM}.mat')[VID_KEYS[CAM]]   # (480, 640, 3, nframes)
+if CAM == 3:
+    vid = rotate_cam3_video(vid)  # 90°+24° CW rotation for Camera 3
 x_raw, y_raw = track_camera(CAM)
 y1, y2, x1, x2 = ROIS[CAM]
 
