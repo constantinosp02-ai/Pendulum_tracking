@@ -9,14 +9,14 @@ Every image-processing step follows techniques taught in MECH0107 Lecture 4
 (Image Processing & Analysis):
 
     1. RGB channel combination  (Lecture 4, Sec. 1.1.1)
-       Cameras 1 & 3: standard grayscale via luminosity weights
-           Gray = 0.2989·R + 0.5870·G + 0.1140·B
+       Camera 1: "pink channel" — R + B − 2G isolates the pink marker
+           on the paint can.  Pink has high Red, high Blue, low Green.
        Camera 2: custom "yellow channel" to isolate the yellow marker
            Y_ch = (R + G)/2 − B
-       Both approaches are arithmetic on the (R, G, B) pixel triplet
-       described in Lecture 4, Sec. 1.1.1. The yellow channel exploits
-       the fact that yellow = high R, high G, low B, while the white
-       wall background has R ≈ G ≈ B, giving a near-zero response.
+       Camera 3: standard grayscale via luminosity weights
+           Gray = 0.2989·R + 0.5870·G + 0.1140·B
+       All three are arithmetic on the (R, G, B) pixel triplet
+       described in Lecture 4, Sec. 1.1.1.
 
     2. Gaussian filtering in the FREQUENCY DOMAIN  (Lecture 4, Sec. 1.2.1.1)
        Procedure: FFT → fftshift → multiply by Gaussian kernel → ifftshift → IFFT
@@ -41,8 +41,8 @@ Every image-processing step follows techniques taught in MECH0107 Lecture 4
 
 The same five-step pipeline is applied to all three cameras. The only
 per-camera differences are: (i) the channel combination used in Step 1
-(grayscale for Cameras 1 & 3, yellow channel for Camera 2), and (ii) the
-brightness threshold, tuned via each camera's histogram.
+(pink for Camera 1, yellow for Camera 2, grayscale for Camera 3),
+and (ii) the brightness threshold, tuned via each camera's histogram.
 
 Input:   cam1.mat, cam2.mat, cam3.mat
 Output:  tracking_results.npz, diagnostic and trajectory figures
@@ -75,7 +75,7 @@ DATA_PATH = 'cam{}.mat'
 # Cropping to a region around the mass avoids bright distractors elsewhere
 # in the frame (ceiling lights, reflections, etc.)
 ROIS = {
-    1: (250, 410, 280, 500),
+    1: (250, 480, 280, 500),
     2: (160, 430, 180, 480),
     3: (130, 350, 200, 520),
 }
@@ -84,18 +84,20 @@ ROIS = {
 #   'grayscale' — standard luminosity conversion (Lecture 4, Sec. 1.1.1)
 #   'yellow'    — custom (R+G)/2 - B channel to isolate the yellow marker
 #                 on the paint can (also based on RGB pixel model, Sec. 1.1.1)
+#   'pink'      — R + B - 2G to isolate the pink marker on the paint can
 CHANNEL_MODE = {
-    1: 'grayscale',
+    1: 'pink',
     2: 'yellow',
     3: 'grayscale',
 }
 
 # Binary threshold for the binary mask
-# Cameras 1 & 3: grayscale intensity (0–255 range)
+# Camera 1: pink channel (R+B−2G, typical range 0–80)
 # Camera 2: yellow channel response (different scale, typically 0–120)
+# Camera 3: grayscale intensity (0–255 range)
 # Chosen by examining the intensity histogram of each camera's frames.
 THRESHOLDS = {
-    1: 210,
+    1: 20,
     2: 60,
     3: 215,
 }
@@ -199,6 +201,48 @@ def rgb_to_yellow_channel(rgb_image):
     yellow = np.clip(yellow, 0, None)
 
     return yellow
+
+
+def rgb_to_pink_channel(rgb_image):
+    """
+    Compute a "pink channel" image from RGB pixel values.
+
+    This is a custom linear combination designed to isolate pink/magenta
+    regions.  Pink in RGB has high Red, high Blue, and low Green, so:
+
+        P = R + B − 2·G
+
+    Colour responses:
+        Pink marker:   (high + high) − 2·low   =  large positive value
+        White wall:    (high + high) − 2·high   ≈  0 (neutral)
+        Blue jeans:    (low  + high) − 2·low    ≈  moderate (but filtered by ROI)
+        Black can:     (low  + low)  − 2·low    ≈  0 (neutral)
+        Skin:          (high + low)  − 2·mid    ≈  0 (neutral)
+
+    Like the yellow channel and standard grayscale, this is an arithmetic
+    combination of the (R, G, B) pixel values (Lecture 4, Sec. 1.1.1).
+
+    Negative values are clipped to zero since they correspond to green-ish
+    pixels (the opposite of what we are looking for).
+
+    Parameters
+    ----------
+    rgb_image : ndarray, shape (H, W, 3)
+        Input image in RGB format (values 0–255).
+
+    Returns
+    -------
+    pink : ndarray, shape (H, W)
+        Pink-channel image as float64. High values = likely pink.
+    """
+    R = rgb_image[:, :, 0].astype(np.float64)
+    G = rgb_image[:, :, 1].astype(np.float64)
+    B = rgb_image[:, :, 2].astype(np.float64)
+
+    pink = R + B - 2.0 * G
+    pink = np.clip(pink, 0, None)
+
+    return pink
 
 
 # =========================================================================
@@ -449,8 +493,9 @@ def track_camera(cam_id):
     For every frame:
         1. Crop to the region of interest
         2. Convert RGB → single channel  (Lecture 4, Sec. 1.1.1)
-           - Cameras 1 & 3: standard grayscale (luminosity weights)
+           - Camera 1: pink channel R + B − 2G
            - Camera 2: yellow channel (R+G)/2 − B
+           - Camera 3: standard grayscale (luminosity weights)
         3. Gaussian filter in frequency domain  (Lecture 4, Sec. 1.2.1.1)
         4. Binary thresholding  (Lecture 4, Sec. 1.1.2)
         5. Morphological cleanup  (Lecture 4, Sec. 1.2)
@@ -514,11 +559,11 @@ def track_camera(cam_id):
         roi_rgb = rgb_frame[y1:y2, x1:x2, :]
 
         # STEP 2: convert RGB → single-channel image
-        # For Cameras 1 & 3: standard grayscale (luminosity method)
-        # For Camera 2: yellow channel (R+G)/2 − B to isolate the yellow marker
-        # Both are linear combinations of RGB channels (Lecture 4, Sec. 1.1.1)
+        # All are linear combinations of RGB channels (Lecture 4, Sec. 1.1.1)
         if mode == 'yellow':
             gray = rgb_to_yellow_channel(roi_rgb)
+        elif mode == 'pink':
+            gray = rgb_to_pink_channel(roi_rgb)
         else:
             gray = rgb_to_grayscale(roi_rgb)
 
@@ -541,6 +586,14 @@ def track_camera(cam_id):
         # STEP 6: centroid selection
         cx, cy = select_best_blob(blob_info, prev_cx, prev_cy)
 
+        # Jump guard (pink channel only): reject centroids that move > 25 px
+        # in one frame.  The pink marker can disappear when the can rotates,
+        # causing the tracker to briefly lock onto a background blob.
+        if mode == 'pink' and cx is not None and prev_cx is not None:
+            jump = np.sqrt((cx - prev_cx)**2 + (cy - prev_cy)**2)
+            if jump > 25:
+                cx, cy = None, None   # treat as lost — will be interpolated
+
         # store result (convert ROI-local coords → full-frame coords)
         if cx is not None:
             x_pos[i] = cx + x1
@@ -554,6 +607,17 @@ def track_camera(cam_id):
                 print(f'  centroid = ({cx + x1:.1f}, {cy + y1:.1f})')
             else:
                 print('  centroid = NOT FOUND')
+
+    # -- Interpolate through any NaN gaps ---------------------------------
+    # When the pink marker briefly disappears (can rotates), we linearly
+    # interpolate through the gap using the surrounding valid positions.
+    valid = ~np.isnan(x_pos)
+    n_gaps = int(np.sum(~valid))
+    if n_gaps > 0 and np.sum(valid) >= 2:
+        indices = np.arange(nframes)
+        x_pos = np.interp(indices, indices[valid], x_pos[valid])
+        y_pos = np.interp(indices, indices[valid], y_pos[valid])
+        print(f'  Interpolated {n_gaps} gap frames')
 
     # -- Report tracking success -------------------------------------------
     tracked = np.sum(~np.isnan(x_pos))
@@ -602,6 +666,9 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
     if mode == 'yellow':
         gray = rgb_to_yellow_channel(roi_rgb.astype(np.float64))
         channel_label = 'Yellow Channel\n(R+G)/2 − B'
+    elif mode == 'pink':
+        gray = rgb_to_pink_channel(roi_rgb.astype(np.float64))
+        channel_label = 'Pink Channel\nR + B − 2G'
     else:
         gray = rgb_to_grayscale(roi_rgb.astype(np.float64))
         channel_label = 'Grayscale ROI\n(Luminosity Method)'
@@ -633,7 +700,7 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
 
     # (b) Single-channel ROI (grayscale or yellow channel)
     img_max = max(np.max(gray), 1)
-    axes[0, 1].imshow(gray, cmap='hot' if mode == 'yellow' else 'gray',
+    axes[0, 1].imshow(gray, cmap='hot' if mode in ('yellow', 'pink') else 'gray',
                        vmin=0, vmax=img_max)
     axes[0, 1].set_title(f'(b) {channel_label}', fontsize=11)
     axes[0, 1].set_xlabel('x (pixels)')
@@ -645,14 +712,16 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
                      color='black', alpha=0.7)
     axes[0, 2].axvline(x=threshold, color='red', linestyle='--', linewidth=2,
                         label=f'Threshold = {threshold}')
-    hist_title = 'Yellow Channel Histogram' if mode == 'yellow' else 'Intensity Histogram'
+    hist_title = ('Yellow Channel Histogram' if mode == 'yellow'
+                   else 'Pink Channel Histogram' if mode == 'pink'
+                   else 'Intensity Histogram')
     axes[0, 2].set_title(f'(c) {hist_title}\n(Sec. 1.1.2)', fontsize=11)
     axes[0, 2].set_xlabel('Pixel Intensity')
     axes[0, 2].set_ylabel('Frequency (count)')
     axes[0, 2].legend(fontsize=9)
 
     # (d) Gaussian-filtered image
-    axes[1, 0].imshow(filtered, cmap='hot' if mode == 'yellow' else 'gray',
+    axes[1, 0].imshow(filtered, cmap='hot' if mode in ('yellow', 'pink') else 'gray',
                        vmin=0, vmax=img_max)
     axes[1, 0].set_title(
         f'(d) Gaussian Filtered\n(Freq. Domain, σ={sigma})', fontsize=11
@@ -760,7 +829,16 @@ if __name__ == '__main__':
         y1, y2, x1, x2 = ROIS[1]
         sigma = GAUSS_SIGMA[1]
         roi_rgb = rgb_frame[y1:y2, x1:x2, :]
-        gray = rgb_to_grayscale(roi_rgb.astype(np.float64))
+        mode1 = CHANNEL_MODE[1]
+        if mode1 == 'yellow':
+            gray = rgb_to_yellow_channel(roi_rgb.astype(np.float64))
+            ch_lbl = 'Yellow Channel'
+        elif mode1 == 'pink':
+            gray = rgb_to_pink_channel(roi_rgb.astype(np.float64))
+            ch_lbl = 'Pink Channel'
+        else:
+            gray = rgb_to_grayscale(roi_rgb.astype(np.float64))
+            ch_lbl = 'Grayscale ROI'
         filtered = gaussian_filter_freq(gray, sigma)
         binary = apply_threshold(filtered, THRESHOLDS[1])
         cleaned, blob_info = morphological_cleanup(
@@ -768,6 +846,8 @@ if __name__ == '__main__':
         )
         cx, cy = select_best_blob(blob_info, None, None)
 
+        cmap1 = 'hot' if mode1 in ('yellow', 'pink') else 'gray'
+        vmax1 = max(np.max(gray), 1)
         fig, axes = plt.subplots(1, 5, figsize=(22, 4.5))
         # (a) Original with ROI
         axes[0].imshow(rgb_frame)
@@ -776,12 +856,12 @@ if __name__ == '__main__':
         axes[0].add_patch(rect)
         axes[0].set_title('(a) Original Frame\nwith ROI', fontsize=11)
         axes[0].axis('off')
-        # (b) Grayscale ROI
-        axes[1].imshow(gray, cmap='gray', vmin=0, vmax=255)
-        axes[1].set_title('(b) Grayscale ROI', fontsize=11)
+        # (b) Channel ROI
+        axes[1].imshow(gray, cmap=cmap1, vmin=0, vmax=vmax1)
+        axes[1].set_title(f'(b) {ch_lbl}', fontsize=11)
         axes[1].axis('off')
         # (c) Gaussian filtered (frequency domain)
-        axes[2].imshow(filtered, cmap='gray', vmin=0, vmax=255)
+        axes[2].imshow(filtered, cmap=cmap1, vmin=0, vmax=vmax1)
         axes[2].set_title(f'(c) Gaussian Filtered\n(Freq. Domain, σ={sigma})',
                           fontsize=11)
         axes[2].axis('off')
