@@ -1015,9 +1015,9 @@ if __name__ == '__main__':
     # =====================================================================
     print('Generating Figure 3: Displacement time series...')
     cam_labels = {
-        1: 'Camera 1 (Side View)',
-        2: 'Camera 2 (Overhead View)',
-        3: 'Camera 3 (Front View)',
+        1: 'Camera 1',
+        2: 'Camera 2',
+        3: 'Camera 3',
     }
     fig, axes = plt.subplots(3, 2, figsize=(16, 11))
 
