@@ -8,46 +8,39 @@ video frames captured by three cameras.
 Every image-processing step follows techniques taught in MECH0107 Lecture 4
 (Image Processing & Analysis):
 
-    1. RGB channel combination  (Lecture 4, Sec. 1.1.1)
-       Camera 1: "pink channel" — R + B − 2G isolates the pink marker
-           on the paint can.  Pink has high Red, high Blue, low Green.
-       Camera 2: custom "yellow channel" to isolate the yellow marker
-           Y_ch = (R + G)/2 − B
-       Camera 3: standard grayscale via luminosity weights
-           Gray = 0.2989·R + 0.5870·G + 0.1140·B
-       All three are arithmetic on the (R, G, B) pixel triplet
-       described in Lecture 4, Sec. 1.1.1.
+    1. Video stabilisation via PHASE CORRELATION  (Lecture 4, Sec. 1.2.1.1)
+       Phase correlation computes translational shifts between consecutive
+       frames using the normalised cross-power spectrum in the frequency
+       domain (FFT-based).  Each frame is aligned to frame 0, removing
+       camera shake before any further processing.
 
-    2. Gaussian filtering in the FREQUENCY DOMAIN  (Lecture 4, Sec. 1.2.1.1)
-       Procedure: FFT → fftshift → multiply by Gaussian kernel → ifftshift → IFFT
-       Kernel:  G(kx,ky) = exp( -σx·(kx-a)² - σy·(ky-b)² )
-       This matches ImageProcessing_Filtering.m from the lectures exactly.
-       Chosen over the Shannon filter because its smooth roll-off avoids
-       Gibbs ringing artefacts caused by the Shannon filter's sharp rectangular
-       cutoff (Lecture 4, Sec. 1.2.1.2).
+    2. ROI cropping
+       Each frame is cropped to a region of interest around the mass to
+       exclude bright distractors (ceiling lights, reflections, etc.).
 
-    3. Binary thresholding  (Lecture 4, Sec. 1.1.2 & 1.2.2.2)
-       Threshold value informed by the intensity histogram of each camera.
-       Analogous to the FFT magnitude thresholding used for image compression
-       where a binary mask isolates significant components.
+    3. Brightness channel  (Lecture 4, Sec. 1.1.1)
+       All cameras: Brightness = max(R, G, B) per pixel.
+       This isolates the brightest spots regardless of colour,
+       using per-pixel arithmetic on the (R, G, B) triplet (Sec. 1.1.1).
 
-    4. Morphological cleanup  (Lecture 4, Sec. 1.2)
-       Connected component labelling breaks the binary image into 2D subsets
-       based on shape and size, filtering out noise blobs.
+    4. White thresholding — only brightest spots  (Lecture 4, Sec. 1.1.2)
+       A high binary threshold isolates only the very brightest pixels
+       in each camera's brightness image.  Threshold values are per-camera,
+       informed by the intensity histogram (Sec. 1.1.2).
 
-    5. Centroid computation
-       The mean (x, y) position of all object pixels gives a single position
-       coordinate per frame for the tracked mass.
+    5. Morphological cleanup  (Lecture 4, Sec. 1.2)
+       Connected component labelling breaks the binary image into blobs
+       filtered by area (min/max size) to remove noise.
 
-The same five-step pipeline is applied to all three cameras. The only
-per-camera differences are: (i) the channel combination used in Step 1
-(pink for Camera 1, yellow for Camera 2, grayscale for Camera 3),
-and (ii) the brightness threshold, tuned via each camera's histogram.
+    6. Centre-of-mass computation
+       The mean (x, y) of all object pixels gives the tracked position.
+
+The same six-step pipeline is applied identically to all three cameras.
+The only per-camera difference is the brightness threshold in Step 4.
 
 Input:   cam1.mat, cam2.mat, cam3.mat
 Output:  tracking_results.npz, diagnostic and trajectory figures
-=============================================================================
-"""
+============================================================================="""
 
 # =========================================================================
 # Import Libraries
@@ -55,6 +48,7 @@ Output:  tracking_results.npz, diagnostic and trajectory figures
 import numpy as np                        # numerical array operations
 import scipy.io as sio                    # reading MATLAB .mat files
 from scipy.ndimage import label, rotate   # connected component labelling + rotation
+from scipy.ndimage import shift as ndi_shift  # sub-pixel image shifting for stabilisation
 import matplotlib.pyplot as plt           # plotting and visualisation
 import os                                 # file path handling
 
@@ -100,56 +94,151 @@ def rotate_cam3_video(vid):
     return vid
 
 
+def stabilize_video(vid):
+    """
+    Stabilise a video using phase correlation in the frequency domain.
+
+    Phase correlation estimates the translational shift between two images
+    by examining the normalised cross-power spectrum of their 2D FFTs.
+    This is a direct application of frequency-domain analysis (Lecture 4,
+    Sec. 1.2.1.1): the FFT transforms each frame into the frequency domain,
+    and the cross-power spectrum reveals the spatial offset.
+
+    Procedure for each frame (relative to reference frame 0):
+        1. Convert both frames to grayscale              — Sec. 1.1.1
+        2. Compute 2D FFT of both                        — fft2()
+        3. Compute normalised cross-power spectrum:
+               CPS = (F_ref × conj(F_frame)) / |F_ref × conj(F_frame)|
+        4. Inverse FFT of CPS → correlation surface      — ifft2()
+        5. Peak location of correlation surface = (dy, dx) shift
+        6. Shift the frame by (−dy, −dx) to align with reference
+
+    Parameters
+    ----------
+    vid : ndarray, shape (H, W, 3, N)
+        Video array.
+
+    Returns
+    -------
+    stabilised : ndarray, same shape and dtype as input
+        Stabilised video array.
+    shifts : ndarray, shape (N, 2)
+        Estimated (dy, dx) shift applied to each frame.
+    """
+    nframes = vid.shape[3]
+    H, W = vid.shape[0], vid.shape[1]
+
+    # Use rolling reference: each frame is stabilized relative to the previous stabilized frame
+    stabilised = vid.copy()
+    shifts = np.zeros((nframes, 2))  # cumulative shifts to align to frame 0
+
+    # Start with frame 0 as reference
+    prev_gray = 0.2989 * stabilised[:, :, 0, 0] + 0.5870 * stabilised[:, :, 1, 0] + 0.1140 * stabilised[:, :, 2, 0]
+
+    for i in range(1, nframes):
+        # Current frame to stabilize
+        curr = stabilised[:, :, :, i].astype(np.float64)
+        curr_gray = 0.2989 * curr[:, :, 0] + 0.5870 * curr[:, :, 1] + 0.1140 * curr[:, :, 2]
+
+        # Phase correlation between prev_gray and curr_gray
+        F1 = np.fft.fft2(prev_gray)
+        F2 = np.fft.fft2(curr_gray)
+        cross_power = F1 * np.conj(F2)
+        magnitude = np.abs(cross_power)
+        magnitude[magnitude == 0] = 1
+        cps = cross_power / magnitude
+        correlation = np.real(np.fft.ifft2(cps))
+        peak = np.unravel_index(np.argmax(correlation), correlation.shape)
+        dy, dx = peak[0], peak[1]
+        if dy > H // 2:
+            dy -= H
+        if dx > W // 2:
+            dx -= W
+
+        # Accumulate shift
+        shifts[i] = shifts[i-1] + [dy, dx]
+
+        # Apply cumulative shift to original frame i
+        for c in range(3):
+            stabilised[:, :, c, i] = ndi_shift(
+                vid[:, :, c, i].astype(np.float64),
+                shift=-shifts[i],
+                order=1,
+                mode='constant',
+                cval=0
+            ).astype(vid.dtype)
+
+        # Update prev_gray to the stabilized current frame
+        prev_gray = 0.2989 * stabilised[:, :, 0, i] + 0.5870 * stabilised[:, :, 1, i] + 0.1140 * stabilised[:, :, 2, i]
+
+    return stabilised, shifts
+
+
 # Region of Interest for each camera: (y_min, y_max, x_min, x_max)
 # Cropping to a region around the mass avoids bright distractors elsewhere
 # in the frame (ceiling lights, reflections, etc.)
 ROIS = {
     1: (150, 430, 280, 500),
-    2: (80, 410, 180, 480),
-    3: (200, 520, 129, 349),   # after 90° CW rotation of Camera 3
+    2: (136, 410, 180, 480),
+    3: (258, 520, 129, 349),   # after 90° CW rotation of Camera 3
 }
 
 # Channel mode for each camera:
-#   'grayscale' — standard luminosity conversion (Lecture 4, Sec. 1.1.1)
-#   'yellow'    — custom (R+G)/2 - B channel to isolate the yellow marker
-#                 on the paint can (also based on RGB pixel model, Sec. 1.1.1)
-#   'pink'      — R + B - 2G to isolate the pink marker on the paint can
+#   'brightness' — per-pixel maximum across R, G, B channels
+#                  This isolates the brightest spots regardless of colour,
+#                  using RGB pixel arithmetic (Lecture 4, Sec. 1.1.1).
 CHANNEL_MODE = {
-    1: 'pink',
-    2: 'yellow',
-    3: 'grayscale',
+    1: 'brightness',
+    2: 'brightness',
+    3: 'brightness',
 }
 
-# Binary threshold for the binary mask
-# Camera 1: pink channel (R+B−2G, typical range 0–80)
-# Camera 2: yellow channel response (different scale, typically 0–120)
-# Camera 3: grayscale intensity (0–255 range)
+# Binary threshold for the binary mask ("white threshold")
+# All cameras now use the brightness channel (max(R,G,B), range 0–255).
+# High thresholds isolate only the very brightest spots in each scene.
 # Chosen by examining the intensity histogram of each camera's frames.
 THRESHOLDS = {
-    1: 20,
-    2: 60,
-    3: 215,
-}
-
-# Gaussian filter width σ for the frequency-domain filter (Lecture 4, Eq. 1)
-# Smaller σ → stronger low-pass (more denoising, more blur)
-# Larger  σ → weaker low-pass  (less denoising, preserves detail)
-GAUSS_SIGMA = {
-    1: 0.0008,
-    2: 0.0008,
-    3: 0.0008,
+    1: 240,
+    2: 247,
+    3: 202,
 }
 
 # Minimum blob area (pixels) — blobs smaller than this are noise
-MIN_BLOB_SIZE = 20
+MIN_BLOB_SIZE = 80
 
 # Maximum blob area (pixels) — blobs larger than this are background
 MAX_BLOB_SIZE = 8000
 
 
 # =========================================================================
-# STEP 1: RGB to Grayscale Conversion
+# STEP 1: Brightness / Grayscale Conversion
 # =========================================================================
+def rgb_to_brightness(rgb_image):
+    """
+    Compute a brightness image as the per-pixel maximum of R, G, B.
+
+    This isolates the whitest / brightest spots in the image regardless
+    of their colour.  A pixel is bright if *any* channel is high:
+
+        Brightness = max(R, G, B)
+
+    This is a simple per-pixel operation on the (R, G, B) triplet
+    (Lecture 4, Sec. 1.1.1).  Combined with a high threshold, it
+    selects only the very brightest spots in the frame.
+
+    Parameters
+    ----------
+    rgb_image : ndarray, shape (H, W, 3)
+        Input image in RGB format (values 0–255).
+
+    Returns
+    -------
+    bright : ndarray, shape (H, W)
+        Brightness image as float64 (values 0–255).
+    """
+    return np.max(rgb_image.astype(np.float64), axis=2)
+
+
 def rgb_to_grayscale(rgb_image):
     """
     Convert an RGB image to grayscale using the luminosity method.
@@ -567,15 +656,12 @@ def track_camera(cam_id):
     Run the complete tracking pipeline for a single camera.
 
     For every frame:
-        1. Crop to the region of interest
-        2. Convert RGB → single channel  (Lecture 4, Sec. 1.1.1)
-           - Camera 1: pink channel R + B − 2G
-           - Camera 2: yellow channel (R+G)/2 − B
-           - Camera 3: standard grayscale (luminosity weights)
-        3. Gaussian filter in frequency domain  (Lecture 4, Sec. 1.2.1.1)
-        4. Binary thresholding  (Lecture 4, Sec. 1.1.2)
+        1. Stabilise the video via phase correlation  (Lecture 4, Sec. 1.2.1.1)
+        2. Crop to the region of interest
+        3. Brightness channel: max(R, G, B)  (Lecture 4, Sec. 1.1.1)
+        4. White threshold — only brightest spots  (Lecture 4, Sec. 1.1.2)
         5. Morphological cleanup  (Lecture 4, Sec. 1.2)
-        6. Centroid extraction
+        6. Centre-of-mass extraction
 
     Parameters
     ----------
@@ -594,10 +680,15 @@ def track_camera(cam_id):
     vid = data[VID_KEYS[cam_id]]            # shape: (480, 640, 3, nframes)
 
     # Camera 3 frames are rotated in the raw data.
-    # Rotate 90° + 24° clockwise to get the correct orientation.
+    # Rotate 90° + 18° clockwise to get the correct orientation.
     if cam_id == 3:
         vid = rotate_cam3_video(vid)
-        print(f'  Rotated Camera 3 frames 90°+24° clockwise')
+        print(f'  Rotated Camera 3 frames 90°+18° clockwise')
+
+    # -- STEP 1: Stabilise the video (phase correlation, FFT-based) --------
+    vid, stab_shifts = stabilize_video(vid)
+    max_shift = np.max(np.abs(stab_shifts))
+    print(f'  Stabilised video (max shift = {max_shift:.1f} px)')
 
     nframes = vid.shape[3]
     print(f'  Video shape: {vid.shape}  →  {nframes} frames')
@@ -605,26 +696,8 @@ def track_camera(cam_id):
     # -- Unpack per-camera parameters --------------------------------------
     y1, y2, x1, x2 = ROIS[cam_id]
     threshold = THRESHOLDS[cam_id]
-    sigma = GAUSS_SIGMA[cam_id]
     mode = CHANNEL_MODE[cam_id]
-    print(f'  Channel mode: {mode}  |  Threshold: {threshold}  |  σ: {sigma}')
-
-    # -- Pre-compute the Gaussian filter kernel ----------------------------
-    # The ROI size is the same for every frame, so we build the kernel once.
-    roi_h = y2 - y1                          # ROI height in pixels
-    roi_w = x2 - x1                          # ROI width in pixels
-
-    # frequency coordinate arrays (1-indexed to match MATLAB convention)
-    kx = np.arange(1, roi_w + 1)
-    ky = np.arange(1, roi_h + 1)
-    KX, KY = np.meshgrid(kx, ky)
-
-    # centre of the frequency domain
-    a = roi_w / 2
-    b = roi_h / 2
-
-    # Gaussian kernel — Lecture 4, Equation (1)
-    G = np.exp(-sigma * (KX - a)**2 - sigma * (KY - b)**2)
+    print(f'  Channel mode: {mode}  |  Threshold: {threshold}')
 
     # -- Preallocate output arrays -----------------------------------------
     x_pos = np.full(nframes, np.nan)
@@ -638,12 +711,14 @@ def track_camera(cam_id):
         # extract this frame as float64
         rgb_frame = vid[:, :, :, i].astype(np.float64)
 
-        # STEP 1: crop to the region of interest
+        # STEP 2: crop to the region of interest
         roi_rgb = rgb_frame[y1:y2, x1:x2, :]
 
-        # STEP 2: convert RGB → single-channel image
-        # All are linear combinations of RGB channels (Lecture 4, Sec. 1.1.1)
-        if mode == 'yellow':
+        # STEP 3: convert RGB → brightness image
+        # Brightness = max(R, G, B) per pixel (Lecture 4, Sec. 1.1.1)
+        if mode == 'brightness':
+            gray = rgb_to_brightness(roi_rgb)
+        elif mode == 'yellow':
             gray = rgb_to_yellow_channel(roi_rgb)
         elif mode == 'pink':
             gray = rgb_to_pink_channel(roi_rgb)
@@ -652,23 +727,15 @@ def track_camera(cam_id):
         else:
             gray = rgb_to_grayscale(roi_rgb)
 
-        # STEP 3: Gaussian filter in the frequency domain
-        # FFT → fftshift → multiply by G → ifftshift → IFFT
-        fft_img = np.fft.fft2(gray)
-        fft_shifted = np.fft.fftshift(fft_img)
-        fft_filtered = fft_shifted * G          # apply the Gaussian kernel
-        fft_unshifted = np.fft.ifftshift(fft_filtered)
-        filtered = np.real(np.fft.ifft2(fft_unshifted))
-
-        # STEP 4: binary thresholding
-        binary = apply_threshold(filtered, threshold)
+        # STEP 4: white threshold — only brightest spots
+        binary = apply_threshold(gray, threshold)
 
         # STEP 5: morphological cleanup
         cleaned, blob_info = morphological_cleanup(
             binary, MIN_BLOB_SIZE, MAX_BLOB_SIZE
         )
 
-        # STEP 6: centroid selection
+        # STEP 6: centre-of-mass selection
         cx, cy = select_best_blob(blob_info, prev_cx, prev_cy)
 
         # Jump guard (pink channel only): reject centroids that move > 25 px
@@ -722,10 +789,10 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
 
     Panels:
         (a) Original RGB frame with ROI boundary
-        (b) Cropped ROI in grayscale
-        (c) Intensity histogram with threshold line
-        (d) Gaussian-filtered image (frequency domain)
-        (e) Binary thresholded image
+        (b) Stabilised frame with ROI boundary
+        (c) Channel-converted ROI image
+        (d) Intensity histogram with threshold line
+        (e) Binary thresholded image (white threshold)
         (f) Cleaned binary image with centroid marked
 
     Parameters
@@ -740,17 +807,23 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
     vid = data[VID_KEYS[cam_id]]
     if cam_id == 3:
         vid = rotate_cam3_video(vid)
-    rgb_frame = vid[:, :, :, frame_idx]
+    rgb_frame_orig = vid[:, :, :, frame_idx].copy()
+
+    # stabilise the video
+    vid_stab, stab_shifts = stabilize_video(vid)
+    rgb_frame = vid_stab[:, :, :, frame_idx]
 
     # unpack parameters
     y1, y2, x1, x2 = ROIS[cam_id]
     threshold = THRESHOLDS[cam_id]
-    sigma = GAUSS_SIGMA[cam_id]
     mode = CHANNEL_MODE[cam_id]
 
     # process the frame step by step
     roi_rgb = rgb_frame[y1:y2, x1:x2, :]
-    if mode == 'yellow':
+    if mode == 'brightness':
+        gray = rgb_to_brightness(roi_rgb.astype(np.float64))
+        channel_label = 'Brightness\nmax(R, G, B)'
+    elif mode == 'yellow':
         gray = rgb_to_yellow_channel(roi_rgb.astype(np.float64))
         channel_label = 'Yellow Channel\n(R+G)/2 − B'
     elif mode == 'pink':
@@ -759,8 +832,7 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
     else:
         gray = rgb_to_grayscale(roi_rgb.astype(np.float64))
         channel_label = 'Grayscale ROI\n(Luminosity Method)'
-    filtered = gaussian_filter_freq(gray, sigma)
-    binary = apply_threshold(filtered, threshold)
+    binary = apply_threshold(gray, threshold)
     cleaned, blob_info = morphological_cleanup(
         binary, MIN_BLOB_SIZE, MAX_BLOB_SIZE
     )
@@ -777,7 +849,7 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
     )
 
     # (a) Original frame with ROI box
-    axes[0, 0].imshow(rgb_frame)
+    axes[0, 0].imshow(rgb_frame_orig)
     rect = plt.Rectangle((x1, y1), x2 - x1, y2 - y1,
                           linewidth=2, edgecolor='lime', facecolor='none')
     axes[0, 0].add_patch(rect)
@@ -785,40 +857,42 @@ def plot_pipeline_diagnostic(cam_id, frame_idx=0):
     axes[0, 0].set_xlabel('x (pixels)')
     axes[0, 0].set_ylabel('y (pixels)')
 
-    # (b) Single-channel ROI (grayscale or yellow channel)
-    img_max = max(np.max(gray), 1)
-    axes[0, 1].imshow(gray, cmap='hot' if mode in ('yellow', 'pink') else 'gray',
-                       vmin=0, vmax=img_max)
-    axes[0, 1].set_title(f'(b) {channel_label}', fontsize=11)
+    # (b) Stabilised frame with ROI box
+    axes[0, 1].imshow(rgb_frame)
+    rect2 = plt.Rectangle((x1, y1), x2 - x1, y2 - y1,
+                           linewidth=2, edgecolor='lime', facecolor='none')
+    axes[0, 1].add_patch(rect2)
+    dy_s, dx_s = stab_shifts[frame_idx]
+    axes[0, 1].set_title(f'(b) Stabilised\n(shift = {dy_s:.1f}, {dx_s:.1f} px)',
+                          fontsize=11)
     axes[0, 1].set_xlabel('x (pixels)')
     axes[0, 1].set_ylabel('y (pixels)')
 
-    # (c) Histogram of pixel intensities (Lecture 4, Sec. 1.1.2)
-    axes[0, 2].hist(gray.ravel(), bins=256,
+    # (c) Single-channel ROI
+    img_max = max(np.max(gray), 1)
+    axes[0, 2].imshow(gray, cmap='gray', vmin=0, vmax=img_max)
+    axes[0, 2].set_title(f'(c) {channel_label}', fontsize=11)
+    axes[0, 2].set_xlabel('x (pixels)')
+    axes[0, 2].set_ylabel('y (pixels)')
+
+    # (d) Histogram of pixel intensities (Lecture 4, Sec. 1.1.2)
+    axes[1, 0].hist(gray.ravel(), bins=256,
                      range=(0, max(img_max, 1)),
                      color='black', alpha=0.7)
-    axes[0, 2].axvline(x=threshold, color='red', linestyle='--', linewidth=2,
+    axes[1, 0].axvline(x=threshold, color='red', linestyle='--', linewidth=2,
                         label=f'Threshold = {threshold}')
-    hist_title = ('Yellow Channel Histogram' if mode == 'yellow'
+    hist_title = ('Brightness Histogram' if mode == 'brightness'
+                   else 'Yellow Channel Histogram' if mode == 'yellow'
                    else 'Pink Channel Histogram' if mode == 'pink'
                    else 'Intensity Histogram')
-    axes[0, 2].set_title(f'(c) {hist_title}\n(Sec. 1.1.2)', fontsize=11)
-    axes[0, 2].set_xlabel('Pixel Intensity')
-    axes[0, 2].set_ylabel('Frequency (count)')
-    axes[0, 2].legend(fontsize=9)
+    axes[1, 0].set_title(f'(d) {hist_title}\n(Sec. 1.1.2)', fontsize=11)
+    axes[1, 0].set_xlabel('Pixel Intensity')
+    axes[1, 0].set_ylabel('Frequency (count)')
+    axes[1, 0].legend(fontsize=9)
 
-    # (d) Gaussian-filtered image
-    axes[1, 0].imshow(filtered, cmap='hot' if mode in ('yellow', 'pink') else 'gray',
-                       vmin=0, vmax=img_max)
-    axes[1, 0].set_title(
-        f'(d) Gaussian Filtered\n(Freq. Domain, σ={sigma})', fontsize=11
-    )
-    axes[1, 0].set_xlabel('x (pixels)')
-    axes[1, 0].set_ylabel('y (pixels)')
-
-    # (e) Binary thresholded
+    # (e) Binary thresholded (white threshold — only brightest spots)
     axes[1, 1].imshow(binary, cmap='gray')
-    axes[1, 1].set_title(f'(e) Binary Threshold\n(T = {threshold})', fontsize=11)
+    axes[1, 1].set_title(f'(e) White Threshold\n(T = {threshold})', fontsize=11)
     axes[1, 1].set_xlabel('x (pixels)')
     axes[1, 1].set_ylabel('y (pixels)')
 
@@ -912,12 +986,17 @@ if __name__ == '__main__':
         data = sio.loadmat(DATA_PATH.format(1))
         vid = data[VID_KEYS[1]]
         fidx = min(200, vid.shape[3] - 1)
-        rgb_frame = vid[:, :, :, fidx]
+        rgb_frame_raw = vid[:, :, :, fidx]
+        # Stabilise for illustration
+        vid_stab, _ = stabilize_video(vid)
+        rgb_frame = vid_stab[:, :, :, fidx]
         y1, y2, x1, x2 = ROIS[1]
-        sigma = GAUSS_SIGMA[1]
         roi_rgb = rgb_frame[y1:y2, x1:x2, :]
         mode1 = CHANNEL_MODE[1]
-        if mode1 == 'yellow':
+        if mode1 == 'brightness':
+            gray = rgb_to_brightness(roi_rgb.astype(np.float64))
+            ch_lbl = 'Brightness'
+        elif mode1 == 'yellow':
             gray = rgb_to_yellow_channel(roi_rgb.astype(np.float64))
             ch_lbl = 'Yellow Channel'
         elif mode1 == 'pink':
@@ -926,35 +1005,34 @@ if __name__ == '__main__':
         else:
             gray = rgb_to_grayscale(roi_rgb.astype(np.float64))
             ch_lbl = 'Grayscale ROI'
-        filtered = gaussian_filter_freq(gray, sigma)
-        binary = apply_threshold(filtered, THRESHOLDS[1])
+        binary = apply_threshold(gray, THRESHOLDS[1])
         cleaned, blob_info = morphological_cleanup(
             binary, MIN_BLOB_SIZE, MAX_BLOB_SIZE
         )
         cx, cy = select_best_blob(blob_info, None, None)
 
-        cmap1 = 'hot' if mode1 in ('yellow', 'pink') else 'gray'
+        cmap1 = 'gray'
         vmax1 = max(np.max(gray), 1)
         fig, axes = plt.subplots(1, 5, figsize=(22, 4.5))
         # (a) Original with ROI
-        axes[0].imshow(rgb_frame)
+        axes[0].imshow(rgb_frame_raw)
         rect = plt.Rectangle((x1, y1), x2-x1, y2-y1,
                               linewidth=2, edgecolor='lime', facecolor='none')
         axes[0].add_patch(rect)
         axes[0].set_title('(a) Original Frame\nwith ROI', fontsize=11)
         axes[0].axis('off')
-        # (b) Channel ROI
+        # (b) Stabilised + Channel ROI
         axes[1].imshow(gray, cmap=cmap1, vmin=0, vmax=vmax1)
-        axes[1].set_title(f'(b) {ch_lbl}', fontsize=11)
+        axes[1].set_title(f'(b) Stabilised +\n{ch_lbl}', fontsize=11)
         axes[1].axis('off')
-        # (c) Gaussian filtered (frequency domain)
-        axes[2].imshow(filtered, cmap=cmap1, vmin=0, vmax=vmax1)
-        axes[2].set_title(f'(c) Gaussian Filtered\n(Freq. Domain, σ={sigma})',
+        # (c) Binary threshold (white threshold — only brightest spots)
+        axes[2].imshow(binary, cmap='gray')
+        axes[2].set_title(f'(c) White Threshold\n(T = {THRESHOLDS[1]})',
                           fontsize=11)
         axes[2].axis('off')
-        # (d) Binary threshold
-        axes[3].imshow(binary, cmap='gray')
-        axes[3].set_title(f'(d) Thresholded\n(T = {THRESHOLDS[1]})', fontsize=11)
+        # (d) Cleaned blobs
+        axes[3].imshow(cleaned, cmap='gray')
+        axes[3].set_title('(d) Blob Cleanup', fontsize=11)
         axes[3].axis('off')
         # (e) Centroid
         axes[4].imshow(roi_rgb)
@@ -1092,7 +1170,7 @@ if __name__ == '__main__':
     print(f'{"="*60}')
     print('\nTUNING TIPS:')
     print('  If tracking is poor on a camera, check fig_diagnostic_cam[N].png:')
-    print('    - Panel (c) histogram: move the threshold to separate the')
-    print('      bright peak (mass) from the dark peak (background)')
+    print('    - Panel (d) histogram: move the threshold to isolate only')
+    print('      the brightest spots (white threshold)')
     print('    - Panel (e) binary: should show ONLY the mass, nothing else')
     print('    - Adjust THRESHOLDS[cam] and ROIS[cam] as needed')

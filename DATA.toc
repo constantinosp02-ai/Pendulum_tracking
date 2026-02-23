@@ -1,0 +1,15 @@
+\contentsline {section}{\numberline {1}Introduction and Problem Statement}{1}{section.1}%
+\contentsline {section}{\numberline {2}Methodology}{1}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Motion Tracking (Image Processing)}{1}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Time--Frequency Analysis (Gabor Transform)}{1}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Dimensionality Reduction (SVD)}{1}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Results}{1}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Tracked Displacement Data}{1}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Spectrograms and Frequency Evolution}{1}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}SVD Mode Decomposition}{1}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Discussion}{1}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Physical Interpretation of Modes}{1}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Mode Coupling and Nonlinearity}{1}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Simplified Analytical Model}{1}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Sources of Error and Improvements}{1}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Conclusion}{1}{section.5}%

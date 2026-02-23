@@ -1,0 +1,117 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{bookmark}
+
+\begin{document}
+
+% ---- Cover Page ----
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+
+    {\Large \textbf{Data-Driven Methods for Engineers}}\\[0.4cm]
+    {\Large \textbf{(MECH0107)}}\\[0.4cm]
+    {\Large \textbf{- Coursework 1 -}}\\[1.5cm]
+
+    {\large 2025 -- 2026}
+
+    \vspace{2cm}
+
+    \raggedright
+    \tableofcontents
+
+\end{titlepage}
+\newpage
+
+% =========================================================================
+% 1. Introduction and Problem Statement
+% =========================================================================
+\section{Introduction and Problem Statement}
+% Brief description of the mass-spring-pendulum system and its physics
+% What the datasets contain (3 cameras, different angles)
+% Objectives: extract motion -> analyse frequencies -> identify modes -> interpret physics
+% Short workflow overview
+
+% =========================================================================
+% 2. Methodology
+% =========================================================================
+\section{Methodology}
+
+\subsection{Motion Tracking (Image Processing)}
+% Pipeline: grayscale conversion -> Gaussian filtering -> thresholding -> morphological cleanup -> centroid extraction
+% Why brightness-based for Cam 1 & 3, yellow channel for Cam 2
+% Camera 3 rotation correction
+% Justify technique: accuracy, computational cost, robustness to noise
+% Reference Lecture 4 techniques
+
+\subsection{Time--Frequency Analysis (Gabor Transform)}
+% The Gabor transform formula and what it does
+% Window width and the Heisenberg trade-off
+% Frequency in cycles/frame (no frame rate metadata)
+
+\subsection{Dimensionality Reduction (SVD)}
+% Data matrix construction (6 rows x n columns)
+% SVD decomposition: A = U Sigma V*
+% Why SVD over PCA (no covariance matrix needed, numerically stable, works directly on data matrix)
+
+% =========================================================================
+% 3. Results
+% =========================================================================
+\section{Results}
+
+\subsection{Tracked Displacement Data}
+% Displacement plots from all 3 cameras
+% Camera 1 overhead shows pendulum swing damping out, sustained vertical oscillation
+
+\subsection{Spectrograms and Frequency Evolution}
+% Global FFT: two distinct frequency peaks
+% Spectrograms at different Gabor widths (the comparison figure)
+% Dominant frequency evolution over time
+
+\subsection{SVD Mode Decomposition}
+% Singular value spectrum and cumulative variance
+% First 3 modes and their temporal behaviour
+% Spatial structure (which cameras/axes contribute to each mode)
+% Low-rank reconstruction
+
+% =========================================================================
+% 4. Discussion
+% =========================================================================
+\section{Discussion}
+
+\subsection{Physical Interpretation of Modes}
+% Mode 1: spring oscillation (sustained, vertical-weighted)
+% Mode 3: pendulum swing (damps quickly, horizontal-weighted)
+% Mode 2/3: perspective effects, possible second swing direction
+
+\subsection{Mode Coupling and Nonlinearity}
+% Amplitude modulation in vertical signal suggests energy transfer
+% Spectrogram shows frequency components aren't perfectly constant
+% 3 modes needed instead of 2 -- evidence of nonlinear interaction
+
+\subsection{Simplified Analytical Model}
+% Small-angle equations for pendulum + spring
+% Expected frequencies vs observed frequencies
+% Discrepancies: damping, geometric nonlinearity, 2D projection limitations
+
+\subsection{Sources of Error and Improvements}
+% Tracking noise, camera calibration, no frame rate metadata
+% Suggested improvements: calibrated stereo cameras, 3D reconstruction, higher frame rate, physical markers
+
+% =========================================================================
+% 5. Conclusion
+% =========================================================================
+\section{Conclusion}
+% System has 2-3 effective DOF
+% SVD successfully separated spring and pendulum modes
+% Nonlinear coupling evidenced by energy transfer and extra modes
+% Limitations of 2D tracking motivate 3D reconstruction in future work
+
+\end{document}
