@@ -1,6 +1,6 @@
 """
 MECH0107 Coursework
-Part 1: Motion Tracking
+Part 1
 
 Extracts the position of an oscillating mass from video frames
 captured by three cameras using image processing techniques.

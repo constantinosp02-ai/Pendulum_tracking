@@ -6,10 +6,12 @@
 \usepackage{float}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage[round]{natbib}
 \usepackage{hyperref}
 \usepackage{bookmark}
 
 \begin{document}
+\pagenumbering{gobble}
 
 % ---- Cover Page ----
 \begin{titlepage}
@@ -18,7 +20,8 @@
 
     {\Large \textbf{Data-Driven Methods for Engineers}}\\[0.4cm]
     {\Large \textbf{(MECH0107)}}\\[0.4cm]
-    {\Large \textbf{- Coursework 1 -}}\\[1.5cm]
+    {\Large \textbf{- Coursework 1 -}}\\[1.8cm]
+    {\Large \textbf{Spring Pendulum: The Theory of Hybrid Systems}}\\[1.1cm]
 
     {\large 2025 -- 2026}
 
@@ -26,19 +29,20 @@
 
 \tableofcontents
 \newpage
+\pagenumbering{arabic}
 
 % =========================================================================
 % 1. Introduction and Problem Statement
 % =========================================================================
 \section{Introduction and Problem Statement}
 
-The elastic pendulum, also known as the spring pendulum, is a classical example of a nonlinear hybrid dynamical system. It consists of a mass suspended from a spring, free to oscillate both vertically (along the spring axis) and horizontally (in the plane of swing). Unlike a simple pendulum or a pure spring-mass oscillator, the elastic pendulum couples two fundamentally different restoring mechanisms: the elastic spring force, governed by Hooke's law ($F = -kx$), and the gravitational restoring force that drives pendulum-like swinging. This coupling gives rise to rich dynamics. At certain energy levels the system exhibits near-periodic energy exchange between the two modes, and at others it can behave chaotically. The interaction becomes particularly pronounced when the natural frequency of the spring mode is approximately twice that of the pendulum mode, a condition known as autoparametric resonance. Studying this system is therefore not just an exercise in mechanics, but a useful case study for understanding how nonlinear coupling manifests in multi-degree-of-freedom oscillators.
+The elastic pendulum, also known as the spring pendulum, is a classical example of a nonlinear hybrid dynamical system \citep{breitenberger1981}. It consists of a mass suspended from a spring, free to oscillate both vertically (along the spring axis) and horizontally (in the plane of swing). Unlike a simple pendulum or a pure spring-mass oscillator, the elastic pendulum couples two fundamentally different restoring mechanisms: the elastic spring force, governed by Hooke's law ($F = -kx$), and the gravitational restoring force that drives pendulum-like swinging. This coupling gives rise to rich dynamics. At certain energy levels the system exhibits near-periodic energy exchange between the two modes, and at others it can behave chaotically \citep{lynch2002}. The interaction becomes particularly pronounced when the natural frequency of the spring mode is approximately twice that of the pendulum mode, a condition known as autoparametric resonance \citep{nayfeh1979}. Studying this system is therefore not just an exercise in mechanics, but a useful case study for understanding how nonlinear coupling manifests in multi-degree-of-freedom oscillators.
 
 In this coursework, a physical spring-pendulum system was recorded using three cameras placed at different orientations around the mass. The mass was released from an off-centre position, simultaneously exciting both the vertical spring oscillation and the horizontal pendulum swing. The video data from each camera were provided as MATLAB \texttt{.mat} files (\texttt{cam1.mat}, \texttt{cam2.mat}, \texttt{cam3.mat}), each containing a sequence of RGB video frames. Since no frame rate metadata was available, all frequency quantities are expressed in cycles per frame rather than in Hz throughout this report.
 
 The analysis is structured around three main objectives. The first is to extract the position of the oscillating mass from each camera's video using image processing techniques, producing displacement time series for subsequent analysis. The second is to characterise how the frequency content of the motion evolves over time, which requires time-frequency analysis rather than a conventional Fourier transform, since the system's dynamics are non-stationary. The third is to reduce the dimensionality of the multi-camera dataset and identify the dominant modes of motion, linking each mode to its physical origin in the spring-pendulum dynamics.
 
-To achieve these objectives, the following workflow was adopted. In Part 1, image processing techniques, including phase correlation for video stabilisation, brightness-based segmentation, binary thresholding, and connected component analysis, were applied to each camera's video to extract the centroid trajectory of the mass. In Part 2, the Gabor transform (short-time Fourier transform) was applied to the displacement signals to produce spectrograms, revealing how the dominant frequencies change over time. Three different Gaussian window widths were compared to illustrate the trade-off between time and frequency resolution. In Part 3, singular value decomposition (SVD) was applied to the combined multi-camera displacement matrix to extract the principal modes of motion, assess how many modes are needed to represent the system, and interpret each mode in terms of the underlying physics.
+To achieve these objectives, the following workflow was adopted. In Part 1, image processing techniques, including phase correlation for video stabilisation \citep{kuglin1975}, brightness-based segmentation, binary thresholding, and connected component analysis, were applied to each camera's video to extract the centroid trajectory of the mass. In Part 2, the Gabor transform \citep{gabor1946} was applied to the displacement signals to produce spectrograms, revealing how the dominant frequencies change over time. Three different Gaussian window widths were compared to illustrate the trade-off between time and frequency resolution. In Part 3, singular value decomposition \citep{kutz2013} was applied to the combined multi-camera displacement matrix to extract the principal modes of motion, assess how many modes are needed to represent the system, and interpret each mode in terms of the underlying physics.
 
 
 
@@ -51,10 +55,10 @@ This section describes the methods used to extract, analyse, and interpret the m
 
 \subsection{Motion Tracking (Image Processing)}
 
-The 2D position of the mass was extracted from each camera's video using the six-step pipeline illustrated in Figure~\ref{fig:pipeline}.
+The 2D position of the mass was extracted from each camera's video using the six-step pipeline illustrated in Figure~\ref{fig:pipeline}. This approach was chosen because phase correlation is robust to intensity changes and does not require feature detection, the brightness channel $\max(R,G,B)$ reliably isolates the bright mass against the darker background without colour-space tuning, and connected component labelling handles varying blob shapes at low computational cost. Together these steps provide accurate, noise-tolerant tracking with minimal manual parameter selection.
 
-\paragraph{Video stabilisation.}
-Small frame-to-frame camera shifts were removed by phase correlation. Each frame was converted to grayscale ($I = 0.299R + 0.587G + 0.114B$) and its translational shift estimated from the peak of the inverse FFT of the normalised cross-power spectrum:
+\paragraph{Video stabilisation:}
+Small frame-to-frame camera shifts were removed by phase correlation \citep{kuglin1975}. Each frame was converted to grayscale using the NTSC luminance weights ($I = 0.299R + 0.587G + 0.114B$) \citep{gonzalez2018} and its translational shift estimated from the peak of the inverse FFT of the normalised cross-power spectrum:
 {\small
 \begin{equation}
     C = \frac{\hat{f}_1 \cdot \overline{\hat{f}_2}}{|\hat{f}_1 \cdot \overline{\hat{f}_2}|}
@@ -62,8 +66,8 @@ Small frame-to-frame camera shifts were removed by phase correlation. Each frame
 }
 where $\hat{f}$ denotes the 2D FFT and $\overline{\cdot}$ the complex conjugate. Cumulative shifts were applied to align all frames to frame~0.
 
-\paragraph{ROI, brightness, and thresholding.}
-Each stabilised frame was cropped to a region of interest (ROI) around the mass to exclude background clutter. The brightness was defined as the per-pixel channel maximum:
+\paragraph{ROI, brightness, and thresholding:}
+Each stabilised frame was cropped to a region of interest (ROI) around the mass to exclude background clutter \citep{gonzalez2018}. The brightness was defined as the per-pixel channel maximum:
 {\small
 \begin{equation}
     B(x,y) = \max\!\bigl(R(x,y),\, G(x,y),\, B(x,y)\bigr)
@@ -77,8 +81,8 @@ A fixed threshold $\theta$ then produced a binary mask:
 }
 Values ($\theta = 240,\,245,\,200$ for Cameras 1--3) were chosen from the intensity histogram of each camera.
 
-\paragraph{Morphological cleanup and centroid.}
-Connected component labelling isolated distinct blobs; those with area outside $[20,\,8000]$\,px were discarded, and the blob nearest the previous centroid was retained. The mass position was taken as the centre-of-mass:
+\paragraph{Morphological cleanup and centroid:}
+Connected component labelling \citep{gonzalez2018} isolated distinct blobs; those with area outside $[20,\,8000]$\,px were discarded, and the blob nearest the previous centroid was retained. The mass position was taken as the centre-of-mass:
 {\small
 \begin{equation}
     (c_x,\, c_y) = \left(\frac{\displaystyle\sum_{(x,y)\in\mathcal{B}} x}{|\mathcal{B}|},\;\frac{\displaystyle\sum_{(x,y)\in\mathcal{B}} y}{|\mathcal{B}|}\right)
@@ -87,16 +91,31 @@ Connected component labelling isolated distinct blobs; those with area outside $
 Frames with no valid detection were filled by linear interpolation, and the mean position was subtracted to produce centred displacement signals $\Delta x(t)$ and $\Delta y(t)$. Camera~3 required an additional 90° + 24° rotation before processing to correct its mounting angle.
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\linewidth]{fig_pipeline_cam1.png}
+    \begin{minipage}[c]{0.6\linewidth}
+        \includegraphics[width=\linewidth]{fig_pipeline_cam1.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.36\linewidth}
+        {\footnotesize
+        \renewcommand{\arraystretch}{1.25}
+        \begin{tabular}{@{}cl@{}}
+            \textbf{(a)} & Original frame + ROI \\
+            \textbf{(b)} & ROI crop \\
+            \textbf{(c)} & Brightness $\max(R,G,B)$ \\
+            \textbf{(d)} & Histogram + threshold $\theta\!=\!240$ \\
+            \textbf{(e)} & Binary mask \\
+            \textbf{(f)} & Cleaned blob + centroid \\
+        \end{tabular}
+        }
+    \end{minipage}
     \captionsetup{font=footnotesize}
-    \caption{Image processing pipeline for Camera 1, Frame 0. (a) Original RGB frame with ROI (green box). (b) ROI crop. (c) Brightness channel $\max(R,G,B)$. (d) Intensity histogram with threshold $\theta = 240$ (dashed red line). (e) Binary mask. (f) Cleaned blob with detected centroid (red cross).}
+    \caption{Image processing pipeline for Camera 1, Frame 0.}
     \label{fig:pipeline}
 \end{figure}
 
-\subsection{Time--Frequency Analysis (Gabor Transform)}
+\subsection{Time Frequency Analysis (Gabor Transform)}
 
-The spring-pendulum is non-stationary: the pendulum swing damps out while the spring oscillation persists, so frequencies evolve with time. A global Fourier transform cannot capture this because it averages over the entire recording. Instead, the Gabor transform (short-time Fourier transform) was applied, which localises the spectrum in time by windowing the signal before transforming.
+The spring pendulum is non stationary: the pendulum swing damps out while the spring oscillation persists, so frequencies evolve with time. A global Fourier transform cannot capture this because it averages over the entire recording. Instead, the Gabor transform \citep{gabor1946} was applied, which localises the spectrum in time by windowing the signal before transforming.
 
 \paragraph{Window function.}
 For each sliding time position $\tau$, a Gaussian window is centred on the signal $S(t)$:
@@ -108,17 +127,17 @@ For each sliding time position $\tau$, a Gaussian window is centred on the signa
 The windowed signal $S(t)\cdot g_\tau(t)$ is then Fourier-transformed to give the local frequency content at time $\tau$. Repeating across all $\tau$ builds the full spectrogram $\mathcal{G}(\tau,\omega)$.
 
 \paragraph{Window width and resolution trade-off.}
-The width $a$ controls the balance between time and frequency resolution, as required by the Heisenberg uncertainty principle: a narrow window ($a$ small) gives good temporal localisation but blurs frequency; a wide window gives sharp frequency peaks but poor time resolution. Three widths were compared — $a = 5,\,15,\,40$ frames — to illustrate this trade-off. Since no frame-rate metadata was available, all frequencies are reported in cycles per frame throughout.
+The width $a$ controls the balance between time and frequency resolution, as required by the Heisenberg uncertainty principle \citep{kutz2013}: a narrow window ($a$ small) gives good temporal localisation but blurs frequency; a wide window gives sharp frequency peaks but poor time resolution. Three widths were compared, $a = 5,\,15,\,40$ frames, to illustrate this trade-off. Since no frame-rate metadata was available, all frequencies are reported in cycles per frame throughout.
 
 \subsection{Dimensionality Reduction (SVD)}
 
-The six displacement signals (x and y from three cameras) were stacked into a data matrix and decomposed using singular value decomposition (SVD) to identify the dominant modes of motion shared across cameras.
+The six displacement signals (x and y from three cameras) were stacked into a data matrix and decomposed using singular value decomposition (SVD) to identify the dominant modes of motion shared across cameras. SVD was chosen over PCA because the two are mathematically equivalent on mean-centred data \citep{kutz2013}, since PCA diagonalises the covariance matrix, which is exactly $\mathbf{U}\boldsymbol{\Sigma}^2\mathbf{U}^\top$ from SVD, but SVD is more numerically stable for small matrices and directly provides both the spatial modes ($\mathbf{U}$) and temporal coefficients ($\mathbf{V}$) in a single decomposition, making physical interpretation straightforward. This eigenvalue-based decomposition approach has been successfully applied in other domains such as face recognition \citep{turk1991}, demonstrating its generality as a dimensionality reduction tool.
 
 \paragraph{Data matrix and mean-centering.}
 The matrix $\mathbf{X} \in \mathbb{R}^{6 \times n}$ was formed by stacking the displacement signals as rows (cam1\,x, cam1\,y, cam2\,x, cam2\,y, cam3\,x, cam3\,y). Row means were subtracted to give the centred matrix $\mathbf{B} = \mathbf{X} - \bar{\mathbf{X}}$.
 
 \paragraph{SVD decomposition.}
-SVD was applied to the scaled matrix:
+Following \citet{kutz2013}, SVD was applied to the scaled matrix:
 {\small
 \begin{equation}
     \frac{\mathbf{B}}{\sqrt{n-1}} = \mathbf{U}\,\boldsymbol{\Sigma}\,\mathbf{V}^\top
@@ -143,7 +162,7 @@ gives the fraction of total variance explained by mode $k$. The temporal project
     \centering
     \includegraphics[width=0.76\linewidth]{fig_displacement.png}
     \captionsetup{font=footnotesize}
-    \caption{Mean-centred displacement time series from all three cameras (horizontal left, vertical right). The horizontal components show decaying amplitude (pendulum swing); the vertical components show a more persistent higher-frequency oscillation (spring mode).}
+    \caption{Mean centred displacement time series from all three cameras.}
     \label{fig:displacement}
 \end{figure}
 
@@ -151,7 +170,9 @@ Figure~\ref{fig:displacement} shows the mean-centred displacement signals extrac
 
 \subsection{Spectrograms and Frequency Evolution}
 
-The global FFT of the Camera~1 signals (Figure~\ref{fig:fft_spec}, top) shows two distinct frequency peaks. The vertical displacement has a dominant peak at approximately twice the frequency of the horizontal peak, consistent with the 2:1 ratio expected at autoparametric resonance. The spectrograms (Figure~\ref{fig:fft_spec}, bottom) reveal how each component evolves in time: the horizontal frequency band is strong early on but decays and becomes noisy in the second half of the recording as the pendulum damps out, while the vertical frequency band remains coherent throughout. The white dashed line tracking the instantaneous dominant frequency confirms this pattern — a relatively stable peak for the spring mode, and an increasingly scattered dominant frequency for the pendulum mode as its amplitude falls below the noise floor.
+The global FFT of the Camera~1 signals (Figure~\ref{fig:fft_spec}a) shows two distinct frequency peaks. The vertical displacement has a dominant peak at approximately twice the frequency of the horizontal peak, consistent with the 2:1 ratio expected at autoparametric resonance \citep{nayfeh1979, lynch2002}. The spectrograms (Figure~\ref{fig:fft_spec}b) reveal how each component evolves in time: the horizontal frequency band is strong early on but decays and becomes noisy in the second half of the recording as the pendulum damps out, while the vertical frequency band remains coherent throughout. The white dashed line tracking the instantaneous dominant frequency confirms this pattern, a relatively stable peak for the spring mode, and an increasingly scattered dominant frequency for the pendulum mode as its amplitude falls below the noise floor.
+
+While the spectrograms clearly reveal the two dominant frequencies and their evolution, they analyse each displacement component independently and cannot separate the contributions of different cameras or identify shared spatial patterns across views. This motivates the use of SVD in Part 3, which combines all six signals to extract the dominant modes of motion and quantify how much of the total variance each mode explains.
 
 \begin{figure}[H]
     \centering
@@ -173,11 +194,11 @@ The global FFT of the Camera~1 signals (Figure~\ref{fig:fft_spec}, top) shows tw
 
 \subsection{SVD Mode Decomposition}
 
-The singular value spectrum (Figure~\ref{fig:svd_main}, left) shows a steep drop after the first mode, with Modes~1, 2, and~3 accounting for 59.1\%, 26.3\%, and 9.3\% of total variance respectively. As shown in Figure~\ref{fig:svd_cumvar}, three modes together capture 94.6\% of the variance — just below the conventional 95\% threshold, requiring a fourth mode (cumulative 98.0\%) to exceed it. The fact that three modes are needed, rather than the two expected for a linear two-degree-of-freedom system, is indicative of nonlinear coupling.
+The singular value spectrum (Figure~\ref{fig:svd_main}, left) shows a steep drop after the first mode, with Modes~1, 2, and~3 accounting for 60.2\%, 25.1\%, and 9.2\% of total variance respectively. As shown in Figure~\ref{fig:svd_cumvar}, three modes together capture 94.5\% of the variance, just below the conventional 95\% threshold, requiring a fourth mode (cumulative 97.8\%) to exceed it. The fact that three modes are needed, rather than the two expected for a linear two-degree-of-freedom system, is indicative of nonlinear coupling.
 
-The temporal projection of each mode (Figure~\ref{fig:svd_main}, right) reveals distinct characters. Mode~1 oscillates at a nearly constant frequency throughout the recording with little decay, consistent with the sustained spring oscillation. Mode~3 oscillates at a lower frequency and its amplitude drops significantly in the first half of the recording, consistent with the damped pendulum swing. Mode~2 lies between the two and may reflect a coupled interaction or a second plane of oscillation.
+The temporal projection of each mode (Figure~\ref{fig:svd_main}, right) reveals distinct characters. Mode~1 oscillates at a nearly constant frequency throughout the recording with little decay, consistent with the sustained spring oscillation. Mode~3 oscillates at a lower frequency and its amplitude drops significantly in the first half of the recording, consistent with the damped pendulum swing. Mode~2 lies between the two and captures a component on which the cameras disagree due to their different viewing angles.
 
-The spatial structure of each mode (Figure~\ref{fig:svd_cumvar}, right) confirms these physical interpretations. Mode~1 has its largest weights on the Camera~1 and Camera~2 vertical channels, consistent with spring-mode (vertical) dominance. Mode~3 is weighted more heavily on the horizontal channels, linking it to the pendulum swing. Mode~2 shows a mixed structure with contributions from multiple cameras and axes.
+The spatial structure of each mode (Figure~\ref{fig:svd_cumvar}, right) confirms these physical interpretations. Mode~1 has its largest weights on the Camera~1 and Camera~2 vertical channels, consistent with spring-mode (vertical) dominance. Mode~3 is weighted more heavily on the horizontal channels, linking it to the pendulum swing. Mode~2 shows a mixed structure with opposite sign on Camera~2's vertical channel compared to the other cameras, reflecting the perspective-dependent projection of depth motion onto each camera's image plane.
 
 \begin{figure}[H]
     \centering
@@ -192,28 +213,20 @@ The spatial structure of each mode (Figure~\ref{fig:svd_cumvar}, right) confirms
     \begin{subfigure}[t]{0.46\linewidth}
         \includegraphics[width=\linewidth]{fig_part3_cumulative_variance.png}
         \captionsetup{font=footnotesize}
-        \caption{Cumulative variance. Three modes reach 94.6\%; four modes reach 98.0\%.}
+        \caption{Cumulative variance. Three modes reach 94.5\%; four modes reach 97.8\%.}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.50\linewidth}
         \includegraphics[width=\linewidth]{fig_part3_mode_structure.png}
         \captionsetup{font=footnotesize}
-        \caption{Spatial structure (left singular vectors $\mathbf{U}$). Mode~1 is vertical-dominant; Mode~3 is horizontal-dominant.}
+        \caption{Spatial structure (left singular vectors $\mathbf{U}$). Mode~1 is vertical-dominant; Mode~3 is horizontal-dominant.\strut}
     \end{subfigure}
     \captionsetup{font=footnotesize}
     \caption{Cumulative variance and spatial mode structure from the SVD decomposition.}
     \label{fig:svd_cumvar}
 \end{figure}
 
-The low-rank reconstruction (Figure~\ref{fig:svd_recon}) shows that a rank-1 approximation captures the dominant spring oscillation but misses the pendulum component entirely. Adding a second mode significantly improves the fit for the horizontal signal, and a rank-3 approximation recovers the main features of both components.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.82\linewidth]{fig_part3_reconstruction.png}
-    \captionsetup{font=footnotesize}
-    \caption{Low-rank reconstruction of Camera~1 horizontal (top) and vertical (bottom) signals for rank-1 (left) and rank-2 (right) approximations.}
-    \label{fig:svd_recon}
-\end{figure}
+Low-rank reconstruction confirms these assignments: a rank-1 approximation captures only the spring oscillation, while adding a second and third mode progressively recovers the pendulum swing and coupled components.
 
 % =========================================================================
 % 4. Discussion
@@ -221,31 +234,98 @@ The low-rank reconstruction (Figure~\ref{fig:svd_recon}) shows that a rank-1 app
 \section{Discussion}
 
 \subsection{Physical Interpretation of Modes}
-% Mode 1: spring oscillation (sustained, vertical-weighted)
-% Mode 3: pendulum swing (damps quickly, horizontal-weighted)
-% Mode 2/3: perspective effects, possible second swing direction
+
+The SVD decomposition cleanly separates the two physical degrees of freedom of the elastic pendulum \citep{breitenberger1981}. Mode~1, which accounts for 60.2\% of the total variance, oscillates at a sustained, nearly constant amplitude throughout the recording and is weighted most heavily on the vertical channels of Cameras~1 and~2 (Figure~\ref{fig:svd_cumvar}b). This is consistent with the spring-mode oscillation: the elastic restoring force $F=-k\Delta l$ drives vertical bouncing that loses energy slowly because the spring stores and releases it efficiently with relatively little aerodynamic drag.
+
+Mode~3 (9.2\% of variance) oscillates at roughly half the frequency of Mode~1 and decays significantly over the recording. Its spatial weights concentrate on the horizontal channels, identifying it as the pendulum swing. The faster damping makes physical sense, as the pendulum mode sweeps the mass through a larger arc for a given energy, increasing air resistance losses, and the gravitational restoring force is weaker than the spring force for small displacements.
+
+Mode~2 (25.1\%) is less straightforward to interpret. Its spatial structure shows mixed contributions from both horizontal and vertical channels, with notably opposite sign on Camera~2's vertical channel compared to Cameras~1 and~3. Because the three cameras are positioned at different heights and angles around the pendulum, each one captures a slightly different 2D projection of the same 3D motion. When the mass moves in depth (toward or away from a camera), perspective causes an apparent vertical shift in the image whose direction depends on whether the camera sits above or below the mass's mean position. Mode~2 therefore captures the component of motion on which the cameras \emph{disagree}, primarily the perspective-dependent projection of depth and out-of-plane displacement. Its intermediate frequency and moderate damping rate are consistent with a coupled interaction between the spring and pendulum degrees of freedom.
 
 \subsection{Mode Coupling and Nonlinearity}
-% Amplitude modulation in vertical signal suggests energy transfer
-% Spectrogram shows frequency components aren't perfectly constant
-% 3 modes needed instead of 2 -- evidence of nonlinear interaction
+
+A purely linear two-degree-of-freedom system would require exactly two modes to fully describe the motion. The fact that three modes are needed to reach 94.5\% of the variance, and a fourth to exceed 95\%, is evidence that the elastic pendulum exhibits nonlinear coupling between its modes. This is consistent with theory: the equations of motion for the spring-pendulum contain terms like $\dot{\theta}^2 \ell$ and $\ddot{\theta}\Delta\ell$ that mix the two coordinates, so the system is not separable into independent oscillators \citep{nayfeh1979}.
+
+Further evidence of coupling appears in the spectrograms (Figure~\ref{fig:fft_spec}). The observed frequency ratio of approximately 2:1 between the vertical and horizontal components places the system near the autoparametric resonance condition \citep{lynch2002}, where energy exchange between modes is most efficient. This is visible in the displacement data as a slow amplitude modulation on the vertical signal, where the spring oscillation periodically gains and loses energy as the pendulum swings. If the two modes were truly independent, each would simply decay monotonically.
+
+The spectrograms also show that the dominant frequencies are not perfectly constant over time. The horizontal component's frequency becomes increasingly scattered as its amplitude drops, partly due to the signal falling into the noise floor, but also because the effective pendulum length changes as the spring stretches and compresses, slightly shifting the natural frequency.
 
 \subsection{Simplified Analytical Model}
-% Small-angle equations for pendulum + spring
-% Expected frequencies vs observed frequencies
-% Discrepancies: damping, geometric nonlinearity, 2D projection limitations
+
+For small oscillations, the elastic pendulum can be modelled as two coupled degrees of freedom \citep{lynch2002}: the spring extension $\Delta\ell$ about the static equilibrium length $\ell_0 = L_0 + mg/k$, and the swing angle $\theta$. The linearised natural frequencies are:
+{\small
+\begin{equation}
+    \omega_{\text{spring}} = \sqrt{\frac{k}{m}}, \qquad \omega_{\text{pendulum}} = \sqrt{\frac{g}{\ell_0}}
+\end{equation}
+}
+The 2:1 frequency ratio observed in the data ($\omega_{\text{spring}} \approx 2\,\omega_{\text{pendulum}}$) implies that $k/m \approx 4g/\ell_0$, which is precisely the autoparametric resonance condition derived in the theory of parametrically coupled oscillators \citep{nayfeh1979}. Since no frame rate was available, we cannot extract absolute values of $k$ or $\ell_0$, but the ratio itself confirms the system operates near this resonance.
+
+Discrepancies between this linear model and the observed behaviour, such as the amplitude-dependent frequency drift and the need for more than two SVD modes, arise from the geometric nonlinearity that the small-angle approximation neglects. The full equations of motion contain products of $\theta$, $\dot{\theta}$, and $\Delta\ell$ that become significant at the amplitudes present early in the recording. Additionally, damping (which the conservative model ignores) causes the pendulum mode to decay faster than the spring mode, breaking the symmetry of the energy exchange.
 
 \subsection{Sources of Error and Improvements}
-% Tracking noise, camera calibration, no frame rate metadata
-% Suggested improvements: calibrated stereo cameras, 3D reconstruction, higher frame rate, physical markers
+
+Several sources of error affect the reliability of the results. The most significant is the absence of frame rate metadata, which prevents converting frequencies from cycles per frame to physical units (Hz) and makes it impossible to extract absolute physical parameters like spring stiffness or pendulum length. All frequency analysis in this report is therefore relative rather than absolute.
+
+The image-based tracking introduces noise from several sources. The brightness thresholding approach is sensitive to lighting variations and reflections, which can shift the detected centroid by a few pixels between frames. The phase-correlation stabilisation \citep{kuglin1975} corrects for rigid camera motion but cannot account for lens distortion or vibrations at sub-pixel scales. The connected component labelling occasionally picks up spurious bright spots, particularly for Camera~3 where the contrast is lower and the threshold had to be set to 200 instead of 240--245.
+
+Each camera provides only a 2D projection of the 3D motion, so the displacement signals mix the true degrees of freedom according to each camera's viewing angle. This is partly why Mode~2 in the SVD has a mixed spatial structure, as it may be capturing a component of motion that appears differently across the three views rather than representing a distinct physical mode. Using calibrated stereo cameras would allow full 3D reconstruction and cleaner mode separation \citep{hartley2003}.
+
+Potential improvements include: (i) recording the frame rate and using a physical scale marker to convert pixel displacements to SI units; (ii) using a retro-reflective marker on the mass for more robust tracking; (iii) employing at least two calibrated cameras for stereo triangulation; and (iv) increasing the frame rate to improve temporal resolution in the spectrograms and reduce aliasing risk near the Nyquist limit.
 
 % =========================================================================
 % 5. Conclusion
 % =========================================================================
 \section{Conclusion}
-% System has 2-3 effective DOF
-% SVD successfully separated spring and pendulum modes
-% Nonlinear coupling evidenced by energy transfer and extra modes
-% Limitations of 2D tracking motivate 3D reconstruction in future work
+
+This report analysed the dynamics of an elastic pendulum using video data from three cameras, applying image processing, time-frequency analysis, and singular value decomposition to extract, characterise, and interpret the system's motion.
+
+The image processing pipeline successfully tracked the mass across all three camera views, producing displacement time series that clearly show two distinct oscillatory components: a sustained, higher-frequency spring mode and a decaying, lower-frequency pendulum swing. The Gabor transform confirmed this two-frequency structure and revealed how the pendulum component damps out over time while the spring mode persists, consistent with the expected physics of the system. The observed 2:1 frequency ratio places the system near the autoparametric resonance condition, where energy exchange between modes is most efficient.
+
+SVD decomposition of the combined multi-camera data identified three dominant modes accounting for 94.5\% of the total variance. Mode~1 (60.2\%) corresponds to the spring oscillation, Mode~3 (9.2\%) to the pendulum swing, and Mode~2 (25.1\%) to a perspective-dependent component arising from the different camera viewing angles. The fact that three modes are needed, rather than the two expected for a linear two-degree-of-freedom system, provides clear evidence of nonlinear coupling between the spring and pendulum degrees of freedom.
+
+Overall, the combination of Gabor analysis and SVD proved effective for this problem: the spectrograms captured the time-varying frequency content that a global FFT would miss, while SVD separated the spatial modes that single-camera analysis cannot distinguish. The main limitations stem from the lack of frame rate metadata and the 2D nature of the camera projections. Future work could address these by using calibrated stereo cameras for 3D reconstruction, attaching a retro-reflective marker for more robust tracking, and recording at a known frame rate to enable extraction of absolute physical parameters such as spring stiffness and pendulum length.
+
+% =========================================================================
+% References
+% =========================================================================
+\newpage
+\section{Appendix}
+
+
+
+
+
+
+
+\newpage
+\begin{thebibliography}{9}
+
+\bibitem[Breitenberger and Mueller(1981)]{breitenberger1981}
+Breitenberger, E. and Mueller, R.D. (1981) `The elastic pendulum: A nonlinear paradigm', \textit{Journal of Mathematical Physics}, 22(6), pp.~1196--1210.
+
+\bibitem[Gabor(1946)]{gabor1946}
+Gabor, D. (1946) `Theory of communication', \textit{Journal of the Institution of Electrical Engineers}, 93(26), pp.~429--457.
+
+\bibitem[Gonzalez and Woods(2018)]{gonzalez2018}
+Gonzalez, R.C. and Woods, R.E. (2018) \textit{Digital Image Processing}. 4th~edn. New York: Pearson.
+
+\bibitem[Hartley and Zisserman(2003)]{hartley2003}
+Hartley, R. and Zisserman, A. (2003) \textit{Multiple View Geometry in Computer Vision}. 2nd~edn. Cambridge: Cambridge University Press.
+
+\bibitem[Kuglin and Hines(1975)]{kuglin1975}
+Kuglin, C.D. and Hines, D.C. (1975) `The phase correlation image alignment method', \textit{Proceedings of the IEEE International Conference on Cybernetics and Society}, pp.~163--165.
+
+\bibitem[Kutz(2013)]{kutz2013}
+Kutz, J.N. (2013) \textit{Data-Driven Modeling and Scientific Computation}. Oxford: Oxford University Press.
+
+\bibitem[Lynch(2002)]{lynch2002}
+Lynch, P. (2002) `Resonant motions of the three-dimensional elastic pendulum', \textit{International Journal of Non-Linear Mechanics}, 37(2), pp.~345--367.
+
+\bibitem[Nayfeh and Mook(1979)]{nayfeh1979}
+Nayfeh, A.H. and Mook, D.T. (1979) \textit{Nonlinear Oscillations}. New York: John Wiley \& Sons.
+
+\bibitem[Turk and Pentland(1991)]{turk1991}
+Turk, M. and Pentland, A. (1991) `Eigenfaces for recognition', \textit{Journal of Cognitive Neuroscience}, 3(1), pp.~71--86.
+
+\end{thebibliography}
 
 \end{document}

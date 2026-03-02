@@ -1,9 +1,8 @@
 """
 Figures.py
-Generates supplementary figures for DATA.tex that are not produced by
-Part1Final.py, part2.py, or part3.py.
+Generates supplementary figures for the cw that are not produced by 
+the main code.
 
-Run after Part1Final.py (tracking_results.npz must exist).
 """
 
 import numpy as np
@@ -82,7 +81,7 @@ def fig_pipeline_cam1():
     axes[1, 2].set_title('(f) Cleaned blob + centroid')
     axes[1, 2].axis('off')
 
-    plt.suptitle('Camera 1 — Image Processing Pipeline (Frame 0)',
+    plt.suptitle('Camera 1_Image Processing Pipeline (Frame 0)',
                  fontsize=12, fontweight='bold')
     plt.tight_layout()
     plt.savefig('fig_pipeline_cam1.png', dpi=200, bbox_inches='tight')
