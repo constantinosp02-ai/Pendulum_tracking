@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  2 MAR 2026 18:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  5 MAR 2026 11:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -337,32 +337,44 @@ File: bkm-pdftex.def 2023-12-10 v1.31 bookmark driver for pdfTeX and luaTeX (HO
 )
 \BKM@id=\count303
 ))
+(/usr/local/texlive/2025/texmf-dist/tex/latex/titlesec/titlesec.sty
+Package: titlesec 2025/01/04 v2.17 Sectioning titles
+\ttl@box=\box56
+\beforetitleunit=\skip57
+\aftertitleunit=\skip58
+\ttl@plus=\dimen173
+\ttl@minus=\dimen174
+\ttl@toksa=\toks28
+\titlewidth=\dimen175
+\titlewidthlast=\dimen176
+\titlewidthfirst=\dimen177
+)
 (/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count304
-\l__pdf_internal_box=\box56
+\l__pdf_internal_box=\box57
 )
 (./DATA.aux)
 \openout1 = `DATA.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -372,15 +384,15 @@ LaTeX Font Info:    ... okay on input line 13.
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(71.13188pt, 455.24411pt, 71.13188pt)
-* v-part:(T,H,B)=(71.13188pt, 702.78308pt, 71.13188pt)
+* h-part:(L,W,R)=(56.9055pt, 483.69687pt, 56.9055pt)
+* v-part:(T,H,B)=(56.9055pt, 731.23584pt, 56.9055pt)
 * \paperwidth=597.50787pt
 * \paperheight=845.04684pt
-* \textwidth=455.24411pt
-* \textheight=702.78308pt
-* \oddsidemargin=-1.1381pt
-* \evensidemargin=-1.1381pt
-* \topmargin=-38.1381pt
+* \textwidth=483.69687pt
+* \textheight=731.23584pt
+* \oddsidemargin=-15.36449pt
+* \evensidemargin=-15.36449pt
+* \topmargin=-52.36449pt
 * \headheight=12.0pt
 * \headsep=25.0pt
 * \topskip=12.0pt
@@ -401,16 +413,16 @@ LaTeX Font Info:    ... okay on input line 13.
 (/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count305
-\scratchdimen=\dimen173
-\scratchbox=\box57
+\scratchdimen=\dimen178
+\scratchbox=\box58
 \nofMPsegments=\count306
 \nofMParguments=\count307
-\everyMPshowfont=\toks28
+\everyMPshowfont=\toks29
 \MPscratchCnt=\count308
-\MPscratchDim=\dimen174
+\MPscratchDim=\dimen179
 \MPnumerator=\count309
 \makeMPintoPDFobject=\count310
-\everyMPtoPDFconversion=\toks29
+\everyMPtoPDFconversion=\toks30
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
@@ -423,7 +435,7 @@ e
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring OFF on input line 13.
+Package hyperref Info: Link coloring OFF on input line 28.
 
 
 [1
@@ -449,68 +461,82 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.}) has b
 een already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.31 \newpage
+l.46 \newpage
               [1]
 
 [1]
-<fig_pipeline_cam1.png, id=83, 929.03085pt x 569.84895pt>
+
+LaTeX Warning: Command \textdegree invalid in math mode on input line 106.
+
+
+LaTeX Warning: Command \textdegree invalid in math mode on input line 106.
+
+
+LaTeX Warning: Command \textdegree invalid in math mode on input line 106.
+
+
+LaTeX Warning: Command \textdegree invalid in math mode on input line 106.
+
+Missing character: There is no ° in font cmr12!
+Missing character: There is no ° in font cmr12!
+
+LaTeX Warning: Command \textdegree invalid in math mode on input line 106.
+
+
+LaTeX Warning: Command \textdegree invalid in math mode on input line 106.
+
+Missing character: There is no ° in font cmr12!
+<fig_pipeline_cam1.png, id=81, 929.03085pt x 569.84895pt>
 File: fig_pipeline_cam1.png Graphic file (type png)
 <use fig_pipeline_cam1.png>
-Package pdftex.def Info: fig_pipeline_cam1.png  used on input line 95.
-(pdftex.def)             Requested size: 273.14923pt x 167.54749pt.
+Package pdftex.def Info: fig_pipeline_cam1.png  used on input line 110.
+(pdftex.def)             Requested size: 290.22107pt x 178.0165pt.
 
 
-[2{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
-}]
-
-[3 <./fig_pipeline_cam1.png>]
-<fig_displacement.png, id=126, 1003.46895pt x 733.17915pt>
+[2 <./fig_pipeline_cam1.png>]
+<fig_displacement.png, id=111, 1003.46895pt x 733.17915pt>
 File: fig_displacement.png Graphic file (type png)
 <use fig_displacement.png>
-Package pdftex.def Info: fig_displacement.png  used on input line 163.
-(pdftex.def)             Requested size: 345.98302pt x 252.79045pt.
+Package pdftex.def Info: fig_displacement.png  used on input line 177.
+(pdftex.def)             Requested size: 367.60695pt x 268.58707pt.
+
+
+[3]
+<fig_part2_signal_fft.png, id=129, 932.283pt x 498.663pt>
+File: fig_part2_signal_fft.png Graphic file (type png)
+<use fig_part2_signal_fft.png>
+Package pdftex.def Info: fig_part2_signal_fft.png  used on input line 193.
+(pdftex.def)             Requested size: 232.17397pt x 174.12378pt.
+<fig_part2_dominant_freq.png, id=130, 1002.74625pt x 642.84164pt>
+File: fig_part2_dominant_freq.png Graphic file (type png)
+<use fig_part2_dominant_freq.png>
+Package pdftex.def Info: fig_part2_dominant_freq.png  used on input line 198.
+(pdftex.def)             Requested size: 232.17215pt x 174.12866pt.
 
 
 [4 <./fig_displacement.png>]
-<fig_part2_signal_fft.png, id=145, 932.283pt x 498.663pt>
-File: fig_part2_signal_fft.png Graphic file (type png)
-<use fig_part2_signal_fft.png>
-Package pdftex.def Info: fig_part2_signal_fft.png  used on input line 180.
-(pdftex.def)             Requested size: 218.51521pt x 116.88145pt.
-<fig_part2_dominant_freq.png, id=146, 1002.74625pt x 642.84164pt>
-File: fig_part2_dominant_freq.png Graphic file (type png)
-<use fig_part2_dominant_freq.png>
-Package pdftex.def Info: fig_part2_dominant_freq.png  used on input line 186.
-(pdftex.def)             Requested size: 218.51521pt x 140.08177pt.
-
-
-[5 <./fig_part2_signal_fft.png> <./fig_part2_dominant_freq.png>]
-<fig_part3_svd.png, id=162, 930.47626pt x 354.123pt>
+<fig_part3_svd.png, id=143, 930.47626pt x 354.123pt>
 File: fig_part3_svd.png Graphic file (type png)
 <use fig_part3_svd.png>
-Package pdftex.def Info: fig_part3_svd.png  used on input line 205.
-(pdftex.def)             Requested size: 400.61703pt x 152.46443pt.
-<fig_part3_cumulative_variance.png, id=163, 498.663pt x 354.123pt>
+Package pdftex.def Info: fig_part3_svd.png  used on input line 215.
+(pdftex.def)             Requested size: 425.6556pt x 161.99617pt.
+<fig_part3_cumulative_variance.png, id=144, 498.663pt x 354.123pt>
 File: fig_part3_cumulative_variance.png Graphic file (type png)
 <use fig_part3_cumulative_variance.png>
 Package pdftex.def Info: fig_part3_cumulative_variance.png  used on input line 
-214.
-(pdftex.def)             Requested size: 209.41534pt x 148.71442pt.
-<fig_part3_mode_structure.png, id=164, 715.11165pt x 354.123pt>
+225.
+(pdftex.def)             Requested size: 232.17264pt x 167.16728pt.
+<fig_part3_mode_structure.png, id=145, 715.11165pt x 354.123pt>
 File: fig_part3_mode_structure.png Graphic file (type png)
 <use fig_part3_mode_structure.png>
-Package pdftex.def Info: fig_part3_mode_structure.png  used on input line 220.
-(pdftex.def)             Requested size: 227.62206pt x 112.71648pt.
-
-Underfull \hbox (badness 1642) in paragraph at lines 222--222
-[]\OT1/cmr/m/n/10 (b) |Spa-tial struc-ture (left sin-gu-lar vec-tors $\OT1/cmr/
-bx/n/10 U$\OT1/cmr/m/n/10 ).
- []
+Package pdftex.def Info: fig_part3_mode_structure.png  used on input line 230.
+(pdftex.def)             Requested size: 232.16847pt x 167.16728pt.
 
 
+[5 <./fig_part2_signal_fft.png> <./fig_part2_dominant_freq.png> <./fig_part3_sv
+d.png>]
 
-[6 <./fig_part3_svd.png> <./fig_part3_cumulative_variance.png> <./fig_part3_mod
-e_structure.png>]
+[6 <./fig_part3_cumulative_variance.png> <./fig_part3_mode_structure.png>]
 
 [7]
 
@@ -518,41 +544,39 @@ e_structure.png>]
 
 [9]
 
-[10]
-
-[11] (./DATA.aux)
+[10] (./DATA.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 12459 strings out of 473190
- 195230 string characters out of 5715801
- 599163 words of memory out of 5000000
- 35505 multiletter control sequences out of 15000+600000
- 573410 words of font info for 90 fonts, out of 8000000 for 9000
+ 12745 strings out of 473190
+ 199104 string characters out of 5715801
+ 607601 words of memory out of 5000000
+ 35799 multiletter control sequences out of 15000+600000
+ 573100 words of font info for 89 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,12n,79p,1192b,567s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,945b,551s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
-</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
-/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
-usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></u
-sr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr
-/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/l
-ocal/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/loc
-al/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/
-texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/t
-exlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/tex
-live/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texl
-ive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texli
-ve/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/t
-exlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on DATA.pdf (13 pages, 2584022 bytes).
+</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></
+usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></u
+sr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></us
+r/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr
+/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/l
+ocal/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/loc
+al/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local
+/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/te
+xlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/tex
+live/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texli
+ve/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texliv
+e/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive
+/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on DATA.pdf (12 pages, 2517028 bytes).
 PDF statistics:
- 341 PDF objects out of 1000 (max. 8388607)
- 279 compressed objects within 3 object streams
- 60 named destinations out of 1000 (max. 500000)
+ 326 PDF objects out of 1000 (max. 8388607)
+ 265 compressed objects within 3 object streams
+ 50 named destinations out of 1000 (max. 500000)
  164 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -1,69 +1,63 @@
-"""Quick viewer for the .mat camera videos with tracking overlay."""
+"""Side-by-side viewer: first 50 frames of all 3 cameras in slow motion."""
 import scipy.io
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-import sys
-import os
 
-from Part1Final import track_camera, VID_KEYS, rotate_cam3_video, stabilize_video
+from Part1Final import VID_KEYS, rotate_cam3_video
 
-cam = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+N_FRAMES = 50
+INTERVAL = 200  # ms per frame (slow motion)
 
-# --- Load video (apply same preprocessing as Part1Final) ---
-mat = scipy.io.loadmat(f'cam{cam}.mat')
-vid = mat[VID_KEYS[cam]]
-if cam == 3:
-    vid = rotate_cam3_video(vid)
-vid, _ = stabilize_video(vid)
-nframes = vid.shape[3]
-print(f'Camera {cam}: {nframes} frames')
+# --- Load all 3 cameras (raw, no stabilisation for speed) ---
+vids = {}
+for cam in [1, 2, 3]:
+    print(f'Loading cam{cam}.mat ...')
+    mat = scipy.io.loadmat(f'cam{cam}.mat')
+    vid = mat[VID_KEYS[cam]]
+    if cam == 2:
+        vid = vid[:, :, :, 5:]  # trim first 5 frames to sync
+    if cam == 3:
+        vid = rotate_cam3_video(vid)
+    vids[cam] = vid
 
-# --- Get raw tracking positions (cache to avoid re-running) ---
-cache = f'tracking_raw_cam{cam}.npz'
-if os.path.exists(cache):
-    print(f'  Loading cached positions from {cache}')
-    d = np.load(cache)
-    x_pos, y_pos = d['x'], d['y']
-else:
-    print(f'  Running tracker (first time — will cache result)...')
-    x_pos, y_pos = track_camera(cam)
-    np.savez(cache, x=x_pos, y=y_pos)
-    print(f'  Saved {cache}')
+# --- Set up side-by-side figure ---
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-# --- Set up figure ---
-fig, ax = plt.subplots()
-im = ax.imshow(vid[:, :, :, 0])
-ax.set_title(f'Camera {cam}')
-ax.axis('off')
+ims = {}
+texts = {}
+for idx, cam in enumerate([1, 2, 3]):
+    axes[idx].set_title(f'Camera {cam}')
+    axes[idx].axis('off')
+    ims[cam] = axes[idx].imshow(vids[cam][:, :, :, 0])
+    texts[cam] = axes[idx].text(
+        0.02, 0.95, 'Frame 0', transform=axes[idx].transAxes,
+        fontsize=11, color='white', fontweight='bold',
+        bbox=dict(boxstyle='round', facecolor='black', alpha=0.7),
+        verticalalignment='top')
 
-frame_text = ax.text(0.02, 0.95, f'Frame 0 / {nframes-1}', transform=ax.transAxes,
-                     fontsize=12, color='white', fontweight='bold',
-                     bbox=dict(boxstyle='round', facecolor='black', alpha=0.7),
-                     verticalalignment='top')
+plt.tight_layout()
+fig.suptitle('Press SPACE to pause/resume', fontsize=10, color='gray', y=0.02)
 
-# trail line and current-position dot
-trail_line, = ax.plot([], [], 'r-', linewidth=1.5, alpha=0.8)
-dot, = ax.plot([], [], 'ro', markersize=8)
+paused = [False]
+
+def on_key(event):
+    if event.key == ' ':
+        if paused[0]:
+            ani.event_source.start()
+        else:
+            ani.event_source.stop()
+        paused[0] = not paused[0]
+
+fig.canvas.mpl_connect('key_press_event', on_key)
 
 def update(i):
-    im.set_data(vid[:, :, :, i])
-    frame_text.set_text(f'Frame {i} / {nframes-1}')
+    out = []
+    for cam in [1, 2, 3]:
+        ims[cam].set_data(vids[cam][:, :, :, i])
+        texts[cam].set_text(f'Frame {i}')
+        out += [ims[cam], texts[cam]]
+    return out
 
-    # draw trail from frame 0 to current frame
-    trail_x = x_pos[:i+1]
-    trail_y = y_pos[:i+1]
-    # skip NaNs for clean line
-    valid = ~np.isnan(trail_x) & ~np.isnan(trail_y)
-    trail_line.set_data(trail_x[valid], trail_y[valid])
-
-    # current dot
-    if not np.isnan(x_pos[i]) and not np.isnan(y_pos[i]):
-        dot.set_data([x_pos[i]], [y_pos[i]])
-    else:
-        dot.set_data([], [])
-
-    return [im, frame_text, trail_line, dot]
-
-ani = animation.FuncAnimation(fig, update, frames=nframes, interval=50, blit=True)
+ani = animation.FuncAnimation(fig, update, frames=N_FRAMES, interval=INTERVAL, blit=True)
 plt.show()
