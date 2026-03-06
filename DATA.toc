@@ -6,9 +6,9 @@
 \contentsline {paragraph}{Morphological cleanup and centroid:}{2}{equation.3}%
 \contentsline {subsection}{\numberline {2.2}Time Frequency Analysis (Gabor Transform)}{3}{subsection.2.2}%
 \contentsline {paragraph}{Window function:}{3}{subsection.2.2}%
-\contentsline {paragraph}{Window width and resolution trade-off:}{3}{equation.5}%
+\contentsline {paragraph}{Window width and resolution trade off:}{3}{equation.5}%
 \contentsline {subsection}{\numberline {2.3}Dimensionality Reduction (SVD)}{3}{subsection.2.3}%
-\contentsline {paragraph}{Data matrix and mean-centering:}{3}{subsection.2.3}%
+\contentsline {paragraph}{Data matrix and mean centering:}{3}{subsection.2.3}%
 \contentsline {paragraph}{SVD decomposition:}{3}{subsection.2.3}%
 \contentsline {section}{\numberline {3}Results}{4}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Tracked Displacement Data}{4}{subsection.3.1}%
@@ -21,3 +21,8 @@
 \contentsline {subsection}{\numberline {4.4}Sources of Error and Improvements}{7}{subsection.4.4}%
 \contentsline {section}{\numberline {5}Conclusion}{8}{section.5}%
 \contentsline {section}{\numberline {6}Appendix}{9}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Part 1}{9}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Part 2}{13}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Part 3}{16}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Supplementary Figures}{18}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Additional Figures}{22}{subsection.6.5}%

@@ -67,12 +67,12 @@ DATA_PATH = 'cam{}.mat'
 
 def rotate_cam3_video(vid):
     """
-    Rotate Camera 3 video: 90° clockwise then an additional 16° clockwise.
+    Rotate Camera 3 video: 90° clockwise then an additional 24° clockwise.
 
     The raw Camera 3 frames are rotated in the .mat file.  This function
     first applies a 90° clockwise rotation (exact, no interpolation) and
-    then an additional 16° clockwise rotation using scipy.ndimage.rotate
-    with reshape=False to keep the frame dimensions constant. The 16°
+    then an additional 24° clockwise rotation using scipy.ndimage.rotate
+    with reshape=False to keep the frame dimensions constant. The 24°
     was chosen so the base of the paint can appears horizontal and
     parallel with the ground.
 
@@ -88,10 +88,10 @@ def rotate_cam3_video(vid):
     """
     # Step 1: exact 90° CW rotation
     vid = np.rot90(vid, k=-1, axes=(0, 1))      # (480,640,3,N) → (640,480,3,N)
-    # Step 2: additional 16° CW  (scipy uses CCW positive, so angle = -16)
+    # Step 2: additional 24° CW  (scipy uses CCW positive, so angle = -24)
     nframes = vid.shape[3]
     for i in range(nframes):
-        vid[:, :, :, i] = rotate(vid[:, :, :, i], angle=-16,
+        vid[:, :, :, i] = rotate(vid[:, :, :, i], angle=-24,
                                   reshape=False, order=1)
     return vid
 
